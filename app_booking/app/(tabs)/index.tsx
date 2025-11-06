@@ -1,7 +1,7 @@
 import { CityButton } from '@/components/booking/city-button';
-import { HotelCard } from '@/components/booking/hotel-card';
+import { HotelCard } from '@/components/booking/hotel-card'; // Có thể đổi tên sang RoomCard sau
 import { SearchBar } from '@/components/booking/search-bar';
-import { BOOKING_COLORS, Hotel, City } from '@/constants/booking';
+import { BOOKING_COLORS, Hotel as Room, City } from '@/constants/booking';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
@@ -16,73 +16,76 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAllHotels, HotelResponse } from '@/apis/hotelApi';
+import { getAllRooms, RoomResponse } from '@/apis/roomApi'; // ✅ Đổi sang roomApi
 
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [bestHotels, setBestHotels] = useState<Hotel[]>([]);
-  const [nearbyHotels, setNearbyHotels] = useState<Hotel[]>([]);
+  const [bestRooms, setBestRooms] = useState<Room[]>([]);
+  const [nearbyRooms, setNearbyRooms] = useState<Room[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    loadHotels();
+    loadRooms();
   }, []);
 
-  const loadHotels = async () => {
+  const loadRooms = async () => {
     try {
       setLoading(true);
-      const data = await getAllHotels();
-      const mappedHotels = mapHotelResponseToHotel(data);
-      
-      // Lấy 2 hotel đầu tiên làm best hotels
-      setBestHotels(mappedHotels.slice(0, 2));
-      // Lấy các hotel còn lại làm nearby hotels
-      setNearbyHotels(mappedHotels.slice(2));
-      
-      // Tạo cities từ hotels data
-      const citySet = new Set<string>();
-      data.forEach((hotel) => {
-        if (hotel.city) {
-          citySet.add(hotel.city);
+      const data = await getAllRooms();
+      const mappedRooms = mapRoomResponseToRoom(data);
+
+      // Lấy 2 phòng đầu tiên làm nổi bật
+      setBestRooms(mappedRooms.slice(0, 2));
+      // Các phòng còn lại
+      setNearbyRooms(mappedRooms.slice(2));
+
+      // Lấy city từ danh sách phòng
+      const hotelSet = new Set<string>();
+      data.forEach((room) => {
+        if (room.hotelName) {
+          hotelSet.add(room.hotelName);
         }
       });
-      const citiesList: City[] = Array.from(citySet)
-        .slice(0, 5) // Lấy tối đa 5 cities
-        .map((city, index) => ({
+      const citiesList: City[] = Array.from(hotelSet)
+        .slice(0, 5)
+        .map((hotelName, index) => ({
           id: (index + 1).toString(),
-          name: city,
+          name: hotelName,
           imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=200',
         }));
       setCities(citiesList);
     } catch (error) {
-      console.error('Load hotels error:', error);
-      setBestHotels([]);
-      setNearbyHotels([]);
+      console.error('Load rooms error:', error);
+      setBestRooms([]);
+      setNearbyRooms([]);
       setCities([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const mapHotelResponseToHotel = (data: HotelResponse[]): Hotel[] => {
+  const mapRoomResponseToRoom = (data: RoomResponse[]): Room[] => {
     return data.map((item) => ({
-      id: item.hotelId.toString(),
-      name: item.hotelName,
-      location: `${item.city}, ${item.country}`,
-      price: item.pricePerNight || 0,
-      rating: 0,
-      reviewCount: 0,
-      imageUrl: item.mainImageUrl || (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : ''),
+      id: item.roomId?.toString(),
+      name: item.roomType || "Không rõ loại phòng",
+      location: item.hotelName || "Không rõ khách sạn",
+      price: item.price ?? 0,
+      rating: item.rating ?? 0,
+      reviewCount: item.reviewCount ?? 0,
+      imageUrl:
+        (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : "") ||
+        "",
       isFavorite: false,
     }));
   };
 
-  const toggleFavorite = (hotelId: string, list: Hotel[], setList: (hotels: Hotel[]) => void): void => {
+
+  const toggleFavorite = (roomId: string, list: Room[], setList: (rooms: Room[]) => void): void => {
     setList(
-      list.map((hotel) =>
-        hotel.id === hotelId ? { ...hotel, isFavorite: !hotel.isFavorite } : hotel
+      list.map((room) =>
+        room.id === roomId ? { ...room, isFavorite: !room.isFavorite } : room
       )
     );
   };
@@ -103,14 +106,14 @@ export default function HomeScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={BOOKING_COLORS.PRIMARY} />
-      
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.headerIcon}>
           <Ionicons name="grid-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>live Green</Text>
-        <TouchableOpacity 
+        <Text style={styles.headerTitle}>Live Green</Text>
+        <TouchableOpacity
           style={styles.headerIcon}
           onPress={() => router.push('/(tabs)/account')}
         >
@@ -118,8 +121,8 @@ export default function HomeScreen(): React.JSX.Element {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         style={styles.scrollView}
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
@@ -142,21 +145,21 @@ export default function HomeScreen(): React.JSX.Element {
           </View>
         )}
 
-        {/* Best Hotels */}
-        {renderSectionHeader('Khách sạn nổi bật', () => router.push('/filter'))}
+        {/* Featured Rooms */}
+        {renderSectionHeader('Phòng nổi bật', () => router.push('/filter'))}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={BOOKING_COLORS.PRIMARY} />
           </View>
         ) : (
           <FlatList
-            data={bestHotels}
+            data={bestRooms}
             renderItem={({ item }) => (
-              <HotelCard
+              <HotelCard // Có thể rename sang RoomCard nếu bạn muốn
                 hotel={item}
                 variant="horizontal"
-                onPress={() => router.push(`/hotel-detail/${item.id}`)}
-                onFavoritePress={() => toggleFavorite(item.id, bestHotels, setBestHotels)}
+                onPress={() => router.push(`/room-detail/${item.id}`)}
+                onFavoritePress={() => toggleFavorite(item.id, bestRooms, setBestRooms)}
               />
             )}
             keyExtractor={(item) => item.id}
@@ -165,32 +168,32 @@ export default function HomeScreen(): React.JSX.Element {
             contentContainerStyle={styles.hotelsList}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Chưa có khách sạn nổi bật</Text>
+                <Text style={styles.emptyText}>Chưa có phòng nổi bật</Text>
               </View>
             }
           />
         )}
 
-        {/* Nearby Hotels */}
-        {renderSectionHeader('Gần vị trí của bạn', () => router.push('/filter'))}
+        {/* Nearby Rooms */}
+        {renderSectionHeader('Phòng gần vị trí của bạn', () => router.push('/filter'))}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={BOOKING_COLORS.PRIMARY} />
           </View>
         ) : (
           <View style={styles.nearbyHotels}>
-            {nearbyHotels.length === 0 ? (
+            {nearbyRooms.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Chưa có khách sạn gần đây</Text>
+                <Text style={styles.emptyText}>Chưa có phòng gần đây</Text>
               </View>
             ) : (
-              nearbyHotels.map((hotel) => (
+              nearbyRooms.map((room) => (
                 <HotelCard
-                  key={hotel.id}
-                  hotel={hotel}
+                  key={room.id}
+                  hotel={room}
                   variant="vertical"
-                  onPress={() => router.push(`/hotel-detail/${hotel.id}`)}
-                  onFavoritePress={() => toggleFavorite(hotel.id, nearbyHotels, setNearbyHotels)}
+                  onPress={() => router.push(`/room-detail/${room.id}`)}
+                  onFavoritePress={() => toggleFavorite(room.id, nearbyRooms, setNearbyRooms)}
                 />
               ))
             )}
@@ -202,10 +205,7 @@ export default function HomeScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BOOKING_COLORS.BACKGROUND,
-  },
+  container: { flex: 1, backgroundColor: BOOKING_COLORS.BACKGROUND },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,10 +216,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
@@ -238,17 +235,9 @@ const styles = StyleSheet.create({
     color: BOOKING_COLORS.BACKGROUND,
     letterSpacing: 0.5,
   },
-  scrollView: {
-    flex: 1,
-  },
-  citiesSection: {
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  citiesList: {
-    paddingHorizontal: 20,
-    paddingRight: 4,
-  },
+  scrollView: { flex: 1 },
+  citiesSection: { marginTop: 8, marginBottom: 32 },
+  citiesList: { paddingHorizontal: 20, paddingRight: 4 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -257,37 +246,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 8,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: BOOKING_COLORS.TEXT_PRIMARY,
-    letterSpacing: -0.5,
-  },
-  seeAllText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BOOKING_COLORS.PRIMARY,
-  },
-  hotelsList: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  nearbyHotels: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: BOOKING_COLORS.TEXT_SECONDARY,
-  },
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: BOOKING_COLORS.TEXT_PRIMARY, letterSpacing: -0.5 },
+  seeAllText: { fontSize: 15, fontWeight: '600', color: BOOKING_COLORS.PRIMARY },
+  hotelsList: { paddingHorizontal: 20, paddingBottom: 12 },
+  nearbyHotels: { paddingHorizontal: 20, paddingBottom: 32 },
+  loadingContainer: { paddingVertical: 40, alignItems: 'center', justifyContent: 'center' },
+  emptyContainer: { paddingVertical: 40, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { fontSize: 16, color: BOOKING_COLORS.TEXT_SECONDARY },
 });

@@ -55,6 +55,7 @@ public class SpringSecurity {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers( "/api/v1/hotels/**", "/api/v1/rooms/**", "/api/v1/reviews/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

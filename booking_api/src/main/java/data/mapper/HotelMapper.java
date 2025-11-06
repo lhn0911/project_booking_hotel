@@ -16,7 +16,6 @@ public class HotelMapper {
         // ảnh hiiện chính
         String mainImageUrl = hotel.getHotelImages() != null && !hotel.getHotelImages().isEmpty()
             ? hotel.getHotelImages().stream()
-                .filter(img -> img.isMain())
                 .findFirst()
                 .orElse(hotel.getHotelImages().get(0))
                 .getImageUrl()
@@ -35,7 +34,6 @@ public class HotelMapper {
             .city(hotel.getCity())
             .country(hotel.getCountry())
             .description(hotel.getDescription())
-            .pricePerNight(hotel.getPricePerNight())
             .mainImageUrl(mainImageUrl)
             .imageUrls(imageUrls)
             .ownerName(hotel.getOwner() != null ? hotel.getOwner().getFullName() : null)

@@ -24,27 +24,19 @@ export default function RegisterScreen() {
     dateOfBirth: new Date(),
     gender: "Male" as "Male" | "Female",
   });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (key: string, value: string | Date) => {
     setForm({ ...form, [key]: value });
+    setErrors({ ...errors, [key]: "" }); // xóa lỗi khi user nhập lại
   };
 
   const formatDate = (date: Date) => {
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
     ];
     return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
   };
@@ -66,19 +58,31 @@ export default function RegisterScreen() {
     handleChange("phoneNumber", formatted);
   };
 
-  const onRegister = async () => {
-    const { fullName, email, phoneNumber, dateOfBirth, gender } = form;
-
-    if (!fullName || !email || !phoneNumber) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc");
-      return;
-    }
-
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    const { fullName, email, phoneNumber } = form;
     const phoneNumberClean = phoneNumber.replace(/\D/g, "");
-    if (!/^0\d{9}$/.test(phoneNumberClean)) {
-      Alert.alert("Lỗi", "Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số");
-      return;
-    }
+
+    if (!fullName.trim()) newErrors.fullName = "Vui lòng nhập họ và tên";
+
+    if (!email.trim()) newErrors.email = "Vui lòng nhập email";
+    else if (!/^[A-Za-z0-9._%+-]+@gmail\.com$/.test(email))
+      newErrors.email = "Email phải có định dạng @gmail.com";
+
+    if (!phoneNumberClean) newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
+    else if (!/^0\d{9}$/.test(phoneNumberClean))
+      newErrors.phoneNumber = "Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+
+  const onRegister = async () => {
+    if (!validateForm()) return;
+
+    const { fullName, email, phoneNumber, dateOfBirth, gender } = form;
+    const phoneNumberClean = phoneNumber.replace(/\D/g, "");
 
     const year = dateOfBirth.getFullYear();
     const month = String(dateOfBirth.getMonth() + 1).padStart(2, "0");
@@ -96,15 +100,11 @@ export default function RegisterScreen() {
       });
 
       if (res.status === 200 || res.status === 201) {
-        // Check if response has success field
         if (res.data?.success || res.data?.data) {
           Alert.alert("Thành công", res.data?.message || "Đăng ký thành công. Vui lòng kiểm tra mã OTP.");
-          // Navigate to verify OTP screen
           router.push({
             pathname: "/verify-otp",
-            params: {
-              phoneNumber: phoneNumberClean,
-            },
+            params: { phoneNumber: phoneNumberClean },
           });
         } else {
           Alert.alert("Lỗi", res?.data?.message || "Không thể đăng ký");
@@ -113,7 +113,10 @@ export default function RegisterScreen() {
         Alert.alert("Lỗi", res?.data?.message || "Không thể đăng ký");
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || e?.response?.data?.errors || "Đã xảy ra lỗi khi đăng ký";
+      const errorMessage =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors ||
+        "Đã xảy ra lỗi khi đăng ký";
       Alert.alert("Đăng ký thất bại", errorMessage);
     } finally {
       setLoading(false);
@@ -127,10 +130,7 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>LG</Text>
@@ -150,6 +150,8 @@ export default function RegisterScreen() {
             value={form.fullName}
             onChangeText={(text: any) => handleChange("fullName", text)}
           />
+          {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
+
           <Input
             label="Email Address"
             placeholder="Enter Email"
@@ -158,6 +160,8 @@ export default function RegisterScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
           <Input
             label="Mobile Number"
             placeholder="Enter Mobile Number"
@@ -165,11 +169,13 @@ export default function RegisterScreen() {
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
           />
+          {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
+
           <Input
             label="Date of Birth"
             placeholder="Select Date of Birth"
-            value={formatDate(form.dateOfBirth)}
             onChangeText={() => { }}
+            value={formatDate(form.dateOfBirth)}
             editable={false}
             onPress={() => setShowDatePicker(true)}
             rightIcon="calendar-outline"
@@ -182,9 +188,7 @@ export default function RegisterScreen() {
               display={Platform.OS === "ios" ? "spinner" : "default"}
               onChange={(event: any, selectedDate?: Date) => {
                 setShowDatePicker(Platform.OS === "ios");
-                if (selectedDate) {
-                  handleChange("dateOfBirth", selectedDate);
-                }
+                if (selectedDate) handleChange("dateOfBirth", selectedDate);
               }}
               maximumDate={new Date()}
             />
@@ -193,55 +197,30 @@ export default function RegisterScreen() {
           <View style={styles.genderContainer}>
             <Text style={styles.genderLabel}>Gender</Text>
             <View style={styles.genderOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.genderOption,
-                  form.gender === "Male" && styles.genderOptionSelected,
-                ]}
-                onPress={() => handleChange("gender", "Male")}
-              >
-                <View
-                  style={[
-                    styles.radioButton,
-                    form.gender === "Male" && styles.radioButtonSelected,
-                  ]}
+              {["Male", "Female"].map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={[styles.genderOption, form.gender === g && styles.genderOptionSelected]}
+                  onPress={() => handleChange("gender", g)}
                 >
-                  {form.gender === "Male" && <View style={styles.radioButtonInner} />}
-                </View>
-                <Text
-                  style={[
-                    styles.genderText,
-                    form.gender === "Male" && styles.genderTextSelected,
-                  ]}
-                >
-                  Male
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.genderOption,
-                  form.gender === "Female" && styles.genderOptionSelected,
-                ]}
-                onPress={() => handleChange("gender", "Female")}
-              >
-                <View
-                  style={[
-                    styles.radioButton,
-                    form.gender === "Female" && styles.radioButtonSelected,
-                  ]}
-                >
-                  {form.gender === "Female" && <View style={styles.radioButtonInner} />}
-                </View>
-                <Text
-                  style={[
-                    styles.genderText,
-                    form.gender === "Female" && styles.genderTextSelected,
-                  ]}
-                >
-                  Female
-                </Text>
-              </TouchableOpacity>
+                  <View
+                    style={[
+                      styles.radioButton,
+                      form.gender === g && styles.radioButtonSelected,
+                    ]}
+                  >
+                    {form.gender === g && <View style={styles.radioButtonInner} />}
+                  </View>
+                  <Text
+                    style={[
+                      styles.genderText,
+                      form.gender === g && styles.genderTextSelected,
+                    ]}
+                  >
+                    {g}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -250,7 +229,7 @@ export default function RegisterScreen() {
             onPress={onRegister}
             variant="primary"
             isLoading={loading}
-            disabled={!isFormValid}
+            disabled={loading}
           />
         </View>
 
@@ -290,15 +269,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: "#718096" },
   form: { marginBottom: 24 },
   genderContainer: { marginBottom: 24 },
-  genderLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1A202C",
-    marginBottom: 12,
-  },
+  genderLabel: { fontSize: 14, fontWeight: "600", color: "#1A202C", marginBottom: 12 },
   genderOptions: { flexDirection: "row", gap: 16 },
   genderOption: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  genderOptionSelected: {},
   radioButton: {
     width: 20,
     height: 20,
@@ -313,12 +286,15 @@ const styles = StyleSheet.create({
   radioButtonInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#3182CE" },
   genderText: { fontSize: 16, color: "#4A5568" },
   genderTextSelected: { color: "#3182CE", fontWeight: "500" },
+  errorText: { color: "#E53E3E", fontSize: 13, marginTop: -8, marginBottom: 10 },
   loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 24,
   },
+  genderOptionSelected: { backgroundColor: "#EBF8FF", borderRadius: 8, paddingHorizontal: 8 },
+
   loginText: { fontSize: 14, color: "#718096" },
   loginLink: { fontSize: 14, color: "#3182CE", fontWeight: "600" },
 });

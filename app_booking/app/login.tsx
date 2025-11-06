@@ -13,10 +13,18 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const onLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Lỗi", "Vui lòng nhập email và mật khẩu");
+    // Validate email
+    if (!email.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập email");
+      return;
+    } else if (!/^[A-Za-z0-9._%+-]+@gmail\.com$/.test(email)) {
+      Alert.alert("Lỗi", "Email phải có định dạng @gmail.com");
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu");
       return;
     }
 
@@ -27,11 +35,10 @@ export default function LoginScreen() {
         password: password,
       });
 
-      // Login returns JWTResponse directly (not wrapped in APIResponse)
       const data = res?.data;
       if (!data) throw new Error("No data");
 
-      // Check if account is not enabled (403 response)
+      // Trường hợp 403: tài khoản chưa kích hoạt
       if (res.status === 403) {
         Alert.alert(
           "Tài khoản chưa kích hoạt",
@@ -42,7 +49,7 @@ export default function LoginScreen() {
 
       const accessToken = data.token;
       const refreshToken = data.refreshToken;
-      
+
       if (!accessToken || !refreshToken) {
         throw new Error("Không nhận được token từ server");
       }

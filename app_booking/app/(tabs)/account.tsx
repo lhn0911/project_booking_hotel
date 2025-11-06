@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AccountScreen() {
@@ -25,9 +25,25 @@ export default function AccountScreen() {
   );
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken", "userProfile"]);
-    setProfile(null);
-    router.replace("/login");
+    Alert.alert(
+      "Xác nhận đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất không?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đăng xuất",
+          style: "destructive",
+          onPress: async () => {
+            await AsyncStorage.multiRemove(["accessToken", "refreshToken", "userProfile"]);
+            setProfile(null);
+            router.replace("/login");
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -73,7 +89,7 @@ export default function AccountScreen() {
           </Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={[styles.menuItem, styles.logoutButton]} onPress={() => router.push("/login") }>
+        <TouchableOpacity style={[styles.menuItem, styles.logoutButton]} onPress={() => router.push("/login")}>
           <Ionicons name="log-in-outline" size={24} color="#3182CE" />
           <Text
             style={[styles.menuText, { color: "#3182CE", fontWeight: "bold" }]}

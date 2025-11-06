@@ -35,19 +35,22 @@ public class Hotel {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "price_per_night", columnDefinition = "DECIMAL(10,2)")
-    private Double pricePerNight;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    // Liên kết với User (chủ khách sạn)
     @ManyToOne
     @JoinColumn(name = "owner_id", referencedColumnName = "user_id")
     private User owner;
 
+    // Liên kết với danh sách ảnh
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HotelImage> hotelImages = new ArrayList<>();
+    // Liên kết với danh sách phòng
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Room> rooms = new ArrayList<>();
+    
 }

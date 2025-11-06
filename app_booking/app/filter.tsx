@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,18 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { HotelCard } from '@/components/booking/hotel-card';
-import { BOOKING_COLORS, Hotel } from '@/constants/booking';
-import { getAllHotels, searchHotels, HotelResponse } from '@/apis/hotelApi';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { HotelCard } from "@/components/booking/hotel-card"; // có thể đổi thành RoomCard nếu bạn có component riêng
+import { BOOKING_COLORS, Hotel } from "@/constants/booking";
+import {
+  getAllRooms,
+  searchRooms,
+  getRoomsByHotelId,
+  RoomResponse,
+} from "@/apis/roomApi";
 
 interface FilterModalProps {
   visible: boolean;
@@ -63,113 +68,111 @@ const FilterModal: React.FC<FilterModalProps> = ({
   </Modal>
 );
 
-export default function FilterScreen(): React.JSX.Element {
+export default function FilterRoomScreen(): React.JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [allHotels, setAllHotels] = useState<HotelResponse[]>([]);
-  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [allRooms, setAllRooms] = useState<RoomResponse[]>([]);
+  const [rooms, setRooms] = useState<Hotel[]>([]); // dùng lại kiểu Hotel để hiển thị dạng card
   const [loading, setLoading] = useState(true);
 
   const [sortModalVisible, setSortModalVisible] = useState(false);
-  const [localityModalVisible, setLocalityModalVisible] = useState(false);
+  const [hotelModalVisible, setHotelModalVisible] = useState(false);
   const [priceModalVisible, setPriceModalVisible] = useState(false);
 
-  const [selectedSort, setSelectedSort] = useState('popularity');
-  const [selectedLocalities, setSelectedLocalities] = useState<string[]>([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState('');
+  const [selectedSort, setSelectedSort] = useState("popularity");
+  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState("");
 
-  // --- Load toàn bộ khách sạn ---
+  // --- Load toàn bộ phòng ---
   useEffect(() => {
-    const fetchHotels = async () => {
+    const fetchRooms = async () => {
       try {
         setLoading(true);
-        const data = await getAllHotels();
-        setAllHotels(data);
-        setHotels(mapHotelResponseToHotel(data));
+        const data = await getAllRooms();
+        setAllRooms(data);
+        setRooms(mapRoomResponseToRoom(data));
       } catch (err) {
-        console.error('Load hotels error:', err);
+        console.error("Load rooms error:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchHotels();
+    fetchRooms();
   }, []);
 
-  // --- Hàm map dữ liệu ---
-  const mapHotelResponseToHotel = useCallback((data: HotelResponse[]): Hotel[] => {
+  // --- Map dữ liệu RoomResponse -> Card model ---
+  const mapRoomResponseToRoom = useCallback((data: RoomResponse[]): Hotel[] => {
     return data.map((item) => ({
-      id: item.hotelId.toString(),
-      name: item.hotelName,
-      location: `${item.city}, ${item.country}`,
-      price: item.pricePerNight || 0,
+      id: item.roomId.toString(),
+      name: item.roomType,
+      location: item.hotelName || "",
+      price: item.price || 0,
       rating: 0,
       reviewCount: 0,
       imageUrl:
-        item.mainImageUrl ||
-        (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : ''),
+        (item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : "") ||
+        "",
       isFavorite: false,
     }));
   }, []);
 
-  // --- Lấy danh sách thành phố ---
-  const getCityOptions = useCallback((): string[] => {
-    const cities = new Set<string>();
-    allHotels.forEach((h) => h.city && cities.add(h.city));
-    return Array.from(cities).sort();
-  }, [allHotels]);
+  // --- Lấy danh sách khách sạn (để lọc theo hotel) ---
+  const getHotelOptions = useCallback((): string[] => {
+    const hotels = new Set<string>();
+    allRooms.forEach((r) => r.hotelName && hotels.add(r.hotelName));
+    return Array.from(hotels).sort();
+  }, [allRooms]);
 
   // --- Apply filters ---
   const applyFilters = useCallback(async () => {
     setLoading(true);
-    let filtered = [...allHotels];
+    let filtered = [...allRooms];
 
-    // Filter by locality
-    if (selectedLocalities.length > 0) {
-      const citySet = new Set(selectedLocalities.map((c) => c.trim().toLowerCase()));
+    // Lọc theo khách sạn
+    if (selectedHotels.length > 0) {
+      const hotelSet = new Set(selectedHotels.map((h) => h.trim().toLowerCase()));
       filtered = filtered.filter(
-        (hotel) => hotel.city && citySet.has(hotel.city.trim().toLowerCase())
+        (room) => room.hotelName && hotelSet.has(room.hotelName.trim().toLowerCase())
       );
     }
 
-    // Filter by price (tạm placeholder, vì backend chưa có)
+    // Lọc theo giá (placeholder)
     if (selectedPriceRange) {
-      filtered = filtered.filter(() => true); // giữ nguyên
+      filtered = filtered.filter(() => true);
     }
 
-    // Sort
+    // Sắp xếp
     switch (selectedSort) {
-      case 'price-low':
-        filtered.sort((a, b) => (a.pricePerNight || 0) - (b.pricePerNight || 0));
+      case "price-low":
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
-      case 'price-high':
-        filtered.sort((a, b) => (b.pricePerNight || 0) - (a.pricePerNight || 0));
+      case "price-high":
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
       default:
         break;
     }
 
-    setHotels(mapHotelResponseToHotel(filtered));
+    setRooms(mapRoomResponseToRoom(filtered));
     setLoading(false);
-  }, [allHotels, selectedLocalities, selectedPriceRange, selectedSort, mapHotelResponseToHotel]);
+  }, [allRooms, selectedHotels, selectedPriceRange, selectedSort, mapRoomResponseToRoom]);
 
   const handleClearFilters = () => {
-    setSelectedLocalities([]);
-    setSelectedPriceRange('');
-    setSelectedSort('popularity');
-    setHotels(mapHotelResponseToHotel(allHotels));
+    setSelectedHotels([]);
+    setSelectedPriceRange("");
+    setSelectedSort("popularity");
+    setRooms(mapRoomResponseToRoom(allRooms));
   };
 
   const sortOptions = [
-    { id: 'popularity', label: 'Độ phổ biến', icon: 'grid-outline' },
-    { id: 'nearby', label: 'Gần vị trí', icon: 'location-outline' },
-    { id: 'rating', label: 'Đánh giá', icon: 'star-outline' },
-    { id: 'price-low', label: 'Giá: thấp đến cao', icon: 'arrow-up-outline' },
-    { id: 'price-high', label: 'Giá: cao đến thấp', icon: 'arrow-down-outline' },
+    { id: "popularity", label: "Phổ biến", icon: "grid-outline" },
+    { id: "price-low", label: "Giá: thấp đến cao", icon: "arrow-up-outline" },
+    { id: "price-high", label: "Giá: cao đến thấp", icon: "arrow-down-outline" },
   ];
 
-  const localityOptions = getCityOptions();
-  const priceRanges = ['Liên hệ', 'Tùy chọn', 'Theo thỏa thuận'];
+  const hotelOptions = getHotelOptions();
+  const priceRanges = ["Liên hệ", "Tùy chọn", "Theo thỏa thuận"];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -180,7 +183,7 @@ export default function FilterScreen(): React.JSX.Element {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tìm kiếm khách sạn</Text>
+        <Text style={styles.headerTitle}>Tìm kiếm phòng</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <Ionicons name="close" size={24} color={BOOKING_COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
@@ -193,8 +196,8 @@ export default function FilterScreen(): React.JSX.Element {
           <Text style={styles.filterButtonText}>Sắp xếp</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.filterButton} onPress={() => setLocalityModalVisible(true)}>
-          <Text style={styles.filterButtonText}>Thành phố</Text>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setHotelModalVisible(true)}>
+          <Text style={styles.filterButtonText}>Khách sạn</Text>
           <Ionicons name="chevron-down-outline" size={16} color={BOOKING_COLORS.PRIMARY} />
         </TouchableOpacity>
 
@@ -204,25 +207,25 @@ export default function FilterScreen(): React.JSX.Element {
         </TouchableOpacity>
       </View>
 
-      {/* Hotels */}
+      {/* Rooms List */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={BOOKING_COLORS.PRIMARY} />
             <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
-        ) : hotels.length === 0 ? (
+        ) : rooms.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Không tìm thấy khách sạn</Text>
+            <Text style={styles.emptyText}>Không tìm thấy phòng</Text>
           </View>
         ) : (
           <View style={styles.hotelsList}>
-            {hotels.map((hotel) => (
+            {rooms.map((room) => (
               <HotelCard
-                key={hotel.id}
-                hotel={hotel}
+                key={room.id}
+                hotel={room}
                 variant="vertical"
-                onPress={() => router.push(`/hotel-detail/${hotel.id}`)}
+                onPress={() => router.push(`/room-detail/${room.id}`)}
               />
             ))}
           </View>
@@ -230,7 +233,11 @@ export default function FilterScreen(): React.JSX.Element {
       </ScrollView>
 
       {/* Sort Modal */}
-      <FilterModal visible={sortModalVisible} onClose={() => setSortModalVisible(false)} title="Sắp xếp theo">
+      <FilterModal
+        visible={sortModalVisible}
+        onClose={() => setSortModalVisible(false)}
+        title="Sắp xếp theo"
+      >
         {sortOptions.map((opt) => (
           <TouchableOpacity
             key={opt.id}
@@ -239,17 +246,23 @@ export default function FilterScreen(): React.JSX.Element {
               setSelectedSort(opt.id);
               setSortModalVisible(false);
               setTimeout(applyFilters, 100);
-            }}>
+            }}
+          >
             <Ionicons
               name={opt.icon as any}
               size={20}
-              color={selectedSort === opt.id ? BOOKING_COLORS.PRIMARY : BOOKING_COLORS.TEXT_SECONDARY}
+              color={
+                selectedSort === opt.id
+                  ? BOOKING_COLORS.PRIMARY
+                  : BOOKING_COLORS.TEXT_SECONDARY
+              }
             />
             <Text
               style={[
                 styles.optionText,
                 selectedSort === opt.id && styles.optionTextSelected,
-              ]}>
+              ]}
+            >
               {opt.label}
             </Text>
             {selectedSort === opt.id && (
@@ -259,37 +272,48 @@ export default function FilterScreen(): React.JSX.Element {
         ))}
       </FilterModal>
 
-      {/* Locality Modal */}
+      {/* Hotel (filter) Modal */}
       <FilterModal
-        visible={localityModalVisible}
-        onClose={() => setLocalityModalVisible(false)}
-        title="Thành phố"
+        visible={hotelModalVisible}
+        onClose={() => setHotelModalVisible(false)}
+        title="Khách sạn"
         onApply={() => {
-          setLocalityModalVisible(false);
+          setHotelModalVisible(false);
           applyFilters();
         }}
-        onClearAll={handleClearFilters}>
-        {localityOptions.length === 0 ? (
-          <Text style={styles.emptyText}>Chưa có thành phố nào</Text>
+        onClearAll={handleClearFilters}
+      >
+        {hotelOptions.length === 0 ? (
+          <Text style={styles.emptyText}>Chưa có khách sạn nào</Text>
         ) : (
-          localityOptions.map((city) => {
-            const isSelected = selectedLocalities.includes(city);
+          hotelOptions.map((name) => {
+            const isSelected = selectedHotels.includes(name);
             return (
               <TouchableOpacity
-                key={city}
+                key={name}
                 style={styles.checkboxItem}
                 onPress={() =>
-                  setSelectedLocalities((prev) =>
-                    isSelected ? prev.filter((c) => c !== city) : [...prev, city]
+                  setSelectedHotels((prev) =>
+                    isSelected ? prev.filter((h) => h !== name) : [...prev, name]
                   )
-                }>
+                }
+              >
                 <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                   {isSelected && (
-                    <Ionicons name="checkmark" size={16} color={BOOKING_COLORS.BACKGROUND} />
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color={BOOKING_COLORS.BACKGROUND}
+                    />
                   )}
                 </View>
-                <Text style={[styles.checkboxText, isSelected && styles.checkboxTextSelected]}>
-                  {city}
+                <Text
+                  style={[
+                    styles.checkboxText,
+                    isSelected && styles.checkboxTextSelected,
+                  ]}
+                >
+                  {name}
                 </Text>
               </TouchableOpacity>
             );
@@ -306,18 +330,24 @@ export default function FilterScreen(): React.JSX.Element {
           setPriceModalVisible(false);
           applyFilters();
         }}
-        onClearAll={() => setSelectedPriceRange('')}>
+        onClearAll={() => setSelectedPriceRange("")}
+      >
         {priceRanges.map((range) => {
           const isSelected = selectedPriceRange === range;
           return (
             <TouchableOpacity
               key={range}
               style={styles.radioItem}
-              onPress={() => setSelectedPriceRange(range)}>
+              onPress={() => setSelectedPriceRange(range)}
+            >
               <View style={styles.radioButton}>
                 {isSelected && <View style={styles.radioButtonInner} />}
               </View>
-              <Text style={[styles.radioText, isSelected && styles.radioTextSelected]}>{range}</Text>
+              <Text
+                style={[styles.radioText, isSelected && styles.radioTextSelected]}
+              >
+                {range}
+              </Text>
             </TouchableOpacity>
           );
         })}

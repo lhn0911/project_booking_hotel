@@ -47,15 +47,16 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Otp otp;
 
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+    private List<Hotel> hotels;
 
-//    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = false)
-//    private List<Article> articles = new ArrayList<>();
-//
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = false)
-//    private List<UserExam> userExams = new ArrayList<>();
-//
-//    @OneToOne(mappedBy = "user")
-//    private Otp otp;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Bookings> bookings;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Review> reviews;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Comment> comments;
 }
 

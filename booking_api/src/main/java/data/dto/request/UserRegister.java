@@ -21,8 +21,10 @@ public class UserRegister {
     private String fullName;
 
     @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không đúng định dạng")
-    @Size(max = 100, message = "Email tối đa 100 ký tự")
+    @Pattern(
+            regexp = "^[A-Za-z0-9._%+-]+@gmail\\.com$",
+            message = "Email phải có định dạng hợp lệ và kết thúc bằng @gmail.com"
+    )    @Size(max = 100, message = "Email tối đa 100 ký tự")
     private String email;
 
     @NotBlank(message = "Số điện thoại không được để trống")
