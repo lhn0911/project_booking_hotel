@@ -38,11 +38,4 @@ public class Review {
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL)
     private List<Comment> comments;
-
-    @PrePersist
-    public void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-    }
 }

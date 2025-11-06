@@ -71,8 +71,8 @@ export default function BookingsScreen(): React.JSX.Element {
     router.push({
       pathname: '/booking/write-review',
       params: {
-        hotelId: booking.hotelId.toString(),
-        bookingId: booking.bookingId.toString(),
+        roomId: booking.roomId.toString(),
+        hotelName: booking.hotelName || '',
       },
     });
   };
@@ -95,7 +95,7 @@ export default function BookingsScreen(): React.JSX.Element {
 
   const renderBookingCard = (booking: BookingResponse) => {
     const isUpcoming = activeTab === 'upcoming';
-
+    
     return (
       <View key={booking.bookingId} style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
@@ -113,24 +113,7 @@ export default function BookingsScreen(): React.JSX.Element {
             style={styles.roomImage}
             contentFit="cover"
           />
-
           <View style={styles.bookingInfo}>
-            {/* Hiển thị tên phòng */}
-            <Text style={styles.hotelName}>{booking.roomType}</Text>
-
-            <View style={styles.locationRow}>
-              <Ionicons name="business-outline" size={16} color={BOOKING_COLORS.TEXT_SECONDARY} />
-              <Text style={styles.hotelName}>{booking.hotelName}</Text>
-            </View>
-
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color={BOOKING_COLORS.TEXT_SECONDARY} />
-              <Text style={styles.location}>
-                {booking.hotelAddress || booking.hotelCity || booking.hotelLocation}
-              </Text>
-            </View>
-
-            {/* Hiển thị đánh giá phòng */}
             <View style={styles.ratingRow}>
               {[...Array(5)].map((_, i) => (
                 <Ionicons
@@ -144,10 +127,14 @@ export default function BookingsScreen(): React.JSX.Element {
                 {booking.rating?.toFixed(1) || '0.0'} ({booking.reviewCount || 0} Reviews)
               </Text>
             </View>
+            <Text style={styles.hotelName}>{booking.hotelName}</Text>
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={16} color={BOOKING_COLORS.TEXT_SECONDARY} />
+              <Text style={styles.location}>{booking.hotelLocation || booking.hotelCity}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Nút hành động */}
         <View style={styles.bookingActions}>
           {isUpcoming ? (
             <>
@@ -180,7 +167,6 @@ export default function BookingsScreen(): React.JSX.Element {
       </View>
     );
   };
-
 
   const renderBookings = () => {
     const isLoading = activeTab === 'upcoming' ? loadingUpcoming : loadingPast;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,44 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BOOKING_COLORS } from '@/constants/booking';
-import { createReview, ReviewRequest } from '@/apis/reviewApi';
+import { createReview, updateReview, getMyReviewByRoomId, ReviewRequest, ReviewResponse } from '@/apis/reviewApi';
 
 export default function WriteReviewScreen(): React.JSX.Element {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const roomId = parseInt(params.hotelId as string) || 0;
+  const roomId = parseInt(params.roomId as string) || 0;
+  const hotelName = params.hotelName as string || '';
 
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingReview, setLoadingReview] = useState<boolean>(true);
+  const [existingReview, setExistingReview] = useState<ReviewResponse | null>(null);
+
+  useEffect(() => {
+    loadExistingReview();
+  }, [roomId]);
+
+  const loadExistingReview = async () => {
+    if (!roomId) {
+      setLoadingReview(false);
+      return;
+    }
+    try {
+      setLoadingReview(true);
+      const review = await getMyReviewByRoomId(roomId);
+      if (review) {
+        setExistingReview(review);
+        setRating(review.rating);
+        setComment(review.comment);
+      }
+    } catch (error) {
+      console.error('Error loading existing review:', error);
+    } finally {
+      setLoadingReview(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!comment.trim()) {
@@ -44,13 +71,26 @@ export default function WriteReviewScreen(): React.JSX.Element {
         rating,
         comment: comment.trim(),
       };
-      await createReview(reviewData);
-      Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      
+      if (existingReview) {
+        // Update existing review
+        await updateReview(existingReview.reviewId, reviewData);
+        Alert.alert('Thành công', 'Đánh giá của bạn đã được cập nhật', [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]);
+      } else {
+        // Create new review
+        await createReview(reviewData);
+        Alert.alert('Thành công', 'Đánh giá của bạn đã được gửi', [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]);
+      }
     } catch (error: any) {
       Alert.alert('Lỗi', error.response?.data?.message || 'Không thể gửi đánh giá');
     } finally {
@@ -90,45 +130,64 @@ export default function WriteReviewScreen(): React.JSX.Element {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        {/* Rating Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Rating</Text>
-          {renderStars()}
-          <Text style={styles.ratingText}>{rating} out of 5 stars</Text>
+      {loadingReview ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={BOOKING_COLORS.PRIMARY} />
+          <Text style={styles.loadingText}>Đang tải...</Text>
         </View>
-
-        {/* Comment Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Review</Text>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Hãy chia sẻ trải nghiệm của bạn về khách sạn này..."
-            placeholderTextColor={BOOKING_COLORS.TEXT_SECONDARY}
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            numberOfLines={8}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCount}>{comment.length} characters</Text>
-        </View>
-
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color={BOOKING_COLORS.BACKGROUND} />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit Review</Text>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          {/* Hotel Name */}
+          {hotelName && (
+            <View style={styles.hotelNameContainer}>
+              <Text style={styles.hotelNameText}>{hotelName}</Text>
+              {existingReview && (
+                <Text style={styles.editNote}>Bạn đang chỉnh sửa đánh giá của mình</Text>
+              )}
+            </View>
           )}
-        </TouchableOpacity>
-      </ScrollView>
+
+          {/* Rating Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Rating</Text>
+            {renderStars()}
+            <Text style={styles.ratingText}>{rating} out of 5 stars</Text>
+          </View>
+
+          {/* Comment Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Review</Text>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Hãy chia sẻ trải nghiệm của bạn về phòng này..."
+              placeholderTextColor={BOOKING_COLORS.TEXT_SECONDARY}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              numberOfLines={8}
+              textAlignVertical="top"
+            />
+            <Text style={styles.charCount}>{comment.length} characters</Text>
+          </View>
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator size="small" color={BOOKING_COLORS.BACKGROUND} />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {existingReview ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -219,6 +278,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: BOOKING_COLORS.BACKGROUND,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: BOOKING_COLORS.TEXT_SECONDARY,
+  },
+  hotelNameContainer: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: BOOKING_COLORS.BORDER,
+  },
+  hotelNameText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 4,
+  },
+  editNote: {
+    fontSize: 14,
+    color: BOOKING_COLORS.PRIMARY,
+    fontStyle: 'italic',
   },
 });
 

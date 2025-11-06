@@ -44,9 +44,6 @@ public class Room {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<RoomImage> images;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Review> reviews;
-
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<Bookings> bookings;
 }

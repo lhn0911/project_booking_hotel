@@ -1,9 +1,10 @@
 package data.repository;
 
-import data.entity.Review;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import data.entity.Review;
 
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
     
@@ -16,5 +17,7 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     boolean existsByUser_UserIdAndRoom_RoomId(Integer userId, Integer roomId);
     
     Review findByReviewId(Integer reviewId);
+    
+    Review findByUser_UserIdAndRoom_RoomId(Integer userId, Integer roomId);
 }
 

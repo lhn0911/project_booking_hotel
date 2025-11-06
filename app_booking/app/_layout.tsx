@@ -40,7 +40,6 @@ export default function RootLayout(): React.JSX.Element {
             <Stack.Screen name="booking/payment-done" options={{ headerShown: false }} />
             <Stack.Screen name="booking/write-review" options={{ headerShown: false }} />
             <Stack.Screen name="booking/booking-detail" options={{ headerShown: false }} />
-            <Stack.Screen name="room-photos/[id]" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

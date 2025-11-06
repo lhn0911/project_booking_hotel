@@ -34,3 +34,13 @@ export const getReviewById = async (reviewId: number): Promise<ReviewResponse> =
   return response.data.data;
 };
 
+export const getMyReviewByRoomId = async (roomId: number): Promise<ReviewResponse | null> => {
+  const response = await axiosInstance.get(`reviews/room/${roomId}/my-review`);
+  return response.data.data || null;
+};
+
+export const updateReview = async (reviewId: number, data: ReviewRequest): Promise<ReviewResponse> => {
+  const response = await axiosInstance.put(`reviews/${reviewId}`, data);
+  return response.data.data;
+};
+

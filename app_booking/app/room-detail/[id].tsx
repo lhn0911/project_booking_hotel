@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,60 +10,57 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   Alert,
-  Modal,
-} from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Image as ExpoImage } from "expo-image";
-import { BOOKING_COLORS } from "@/constants/booking";
-import { getRoomById, RoomResponse } from "@/apis/roomApi";
-import { getReviewsByRoomId, ReviewResponse } from "@/apis/reviewApi";
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import { BOOKING_COLORS } from '@/constants/booking';
+import { getRoomById, RoomResponse } from '@/apis/roomApi';
+import { getReviewsByRoomId, ReviewResponse } from '@/apis/reviewApi';
 
 export default function RoomDetailScreen(): React.JSX.Element {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [room, setRoom] = useState<RoomResponse | null>(null);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadRoomDetail = async () => {
-      try {
-        setLoading(true);
-        const roomId = parseInt(id || "0", 10);
-        if (isNaN(roomId)) {
-          Alert.alert("Lỗi", "ID phòng không hợp lệ");
-          router.back();
-          return;
-        }
-        const data = await getRoomById(roomId);
-        setRoom(data);
-
-        // load reviews
-        try {
-          const reviewsData = await getReviewsByRoomId(roomId);
-          setReviews(reviewsData);
-        } catch (error) {
-          console.error("Load reviews error:", error);
-        }
-      } catch (error) {
-        console.error("Load room detail error:", error);
-        Alert.alert("Lỗi", "Không thể tải thông tin phòng", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadRoomDetail();
   }, [id]);
+
+  const loadRoomDetail = async () => {
+    try {
+      setLoading(true);
+      const roomId = parseInt(id || '0', 10);
+      if (isNaN(roomId)) {
+        Alert.alert('Lỗi', 'ID phòng không hợp lệ');
+        router.back();
+        return;
+      }
+      const data = await getRoomById(roomId);
+      setRoom(data);
+      
+      // Load reviews for this room
+      try {
+        const reviewsData = await getReviewsByRoomId(roomId);
+        setReviews(reviewsData);
+      } catch (error) {
+        console.error('Load reviews error:', error);
+      }
+    } catch (error) {
+      console.error('Load room detail error:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin phòng', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading || !room) {
     return (
@@ -83,20 +80,20 @@ export default function RoomDetailScreen(): React.JSX.Element {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.headerButton, styles.headerButtonTransparent]}
-        >
+          style={[styles.headerButton, styles.headerButtonTransparent]}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.BACKGROUND} />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setIsFavorite(!isFavorite)}
-          style={[styles.headerButton, styles.headerButtonTransparent]}
-        >
-          <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"}
-            size={24}
-            color={isFavorite ? BOOKING_COLORS.HEART : BOOKING_COLORS.BACKGROUND}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => setIsFavorite(!isFavorite)}
+            style={[styles.headerButton, styles.headerButtonTransparent]}>
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorite ? BOOKING_COLORS.HEART : BOOKING_COLORS.BACKGROUND}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -119,32 +116,32 @@ export default function RoomDetailScreen(): React.JSX.Element {
           />
         </View>
 
+
         {/* Room Info */}
         <View style={styles.content}>
           <Text style={styles.roomName}>{room.roomType}</Text>
 
           {/* Rating */}
-          {room.rating !== null && room.rating > 0 && (
+          {room.rating && room.rating > 0 && (
             <View style={styles.ratingRow}>
               {[...Array(5)].map((_, i) => (
                 <Ionicons
                   key={i}
-                  name={i < Math.floor(room.rating ?? 0) ? "star" : "star-outline"}
+                  name={i < Math.floor(room.rating || 0) ? 'star' : 'star-outline'}
                   size={16}
                   color={BOOKING_COLORS.RATING}
                 />
               ))}
               <Text style={styles.ratingText}>
-                {(room.rating ?? 0).toFixed(1)} ({room.reviewCount || 0} đánh giá)
+                {room.rating.toFixed(1)} ({room.reviewCount || 0} Reviews)
               </Text>
             </View>
           )}
 
-
           <View style={styles.locationRow}>
             <Ionicons name="business-outline" size={16} color={BOOKING_COLORS.TEXT_SECONDARY} />
             <Text style={styles.location}>
-              {room.hotelName || "Thuộc khách sạn không xác định"}
+              {room.hotelName || 'Thuộc khách sạn không xác định'}
             </Text>
           </View>
 
@@ -161,31 +158,19 @@ export default function RoomDetailScreen(): React.JSX.Element {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Hình ảnh</Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/room-photos/[id]",
-                      params: { id: room.roomId?.toString() ?? "0" },
-                    })
-                  }
-                >
-                  <Text style={styles.viewAllReviewsText}>Xem tất cả</Text>
-                </TouchableOpacity>
-
               </View>
-
               <FlatList
-                data={room.imageUrls.slice(0, 5)}
+                data={room.imageUrls}
                 renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => setSelectedImage(item)}>
+                  <View style={styles.photoThumbnail}>
                     <ExpoImage
                       source={{ uri: item }}
-                      style={styles.photoThumbnail}
+                      style={styles.photoImage}
                       contentFit="cover"
                     />
-                  </TouchableOpacity>
+                  </View>
                 )}
-                keyExtractor={(_, index) => index.toString()}
+                keyExtractor={(item, index) => index.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.photosList}
@@ -193,84 +178,81 @@ export default function RoomDetailScreen(): React.JSX.Element {
             </View>
           )}
 
-          {/* Fullscreen image modal */}
-          <Modal visible={!!selectedImage} transparent animationType="fade">
-            <View style={styles.fullscreenContainer}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setSelectedImage(null)}
-              >
-                <Ionicons name="close" size={32} color="#fff" />
-              </TouchableOpacity>
-              {selectedImage && (
-                <ExpoImage
-                  source={{ uri: selectedImage }}
-                  style={styles.fullscreenImage}
-                  contentFit="contain"
-                />
-              )}
-            </View>
-          </Modal>
-
-          {/* Room amenities */}
+          {/* Room Features */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tiện nghi</Text>
-            <View style={styles.amenityGrid}>
-              {[
-                "TIVI LED 48 inch",
-                "Két sắt",
-                "Điện thoại",
-                "Bàn làm việc",
-                "Máy sấy tóc",
-                "Áo choàng tắm",
-              ].map((item, index) => (
-                <View key={index} style={styles.amenityItem}>
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={18}
-                    color={BOOKING_COLORS.PRIMARY}
-                  />
-                  <Text style={styles.amenityText}>{item}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>Chi tiết phòng</Text>
+            <Text style={styles.featureText}>Sức chứa: {room.capacity} người</Text>
           </View>
 
-          {/* Reviews */}
+          {/* Reviews Section */}
           {reviews.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Đánh giá ({reviews.length})</Text>
-              {reviews.slice(0, 5).map((r) => (
-                <View key={r.reviewId} style={styles.reviewItem}>
-                  <Text style={styles.reviewUserName}>{r.userName}</Text>
-                  <Text style={styles.reviewComment}>{r.comment}</Text>
+              {reviews.slice(0, 5).map((review) => (
+                <View key={review.reviewId} style={styles.reviewItem}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewUserInfo}>
+                      <Text style={styles.reviewUserName}>{review.userName}</Text>
+                      <View style={styles.reviewRating}>
+                        {[...Array(5)].map((_, i) => (
+                          <Ionicons
+                            key={i}
+                            name={i < review.rating ? 'star' : 'star-outline'}
+                            size={12}
+                            color={BOOKING_COLORS.RATING}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                    </Text>
+                  </View>
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
                 </View>
               ))}
+              {reviews.length > 5 && (
+                <TouchableOpacity
+                  style={styles.viewAllReviews}
+                  onPress={() => {
+                    // Navigate to reviews screen if needed
+                  }}>
+                  <Text style={styles.viewAllReviewsText}>
+                    Xem tất cả {reviews.length} đánh giá
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Bottom bar */}
+      {/* Bottom Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
-        <Text style={styles.priceLabel}>
-          {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-            room.price ?? 0
+        <View style={styles.priceContainer}>
+          {room.price && room.price > 0 ? (
+            <>
+              <Text style={styles.priceLabel}>
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.price)}
+              </Text>
+              <Text style={styles.priceSubLabel}>/đêm</Text>
+            </>
+          ) : (
+            <Text style={styles.priceLabel}>Liên hệ để biết giá</Text>
           )}
-        </Text>
+        </View>
         <TouchableOpacity
           style={styles.selectDateButton}
-          onPress={() =>
+          onPress={() => {
             router.push({
-              pathname: "/booking/select-guest",
+              pathname: '/booking/select-guest',
               params: {
                 roomId: id,
                 roomName: room.roomType,
-                roomPrice: room.price?.toString() || "0",
+                roomPrice: room.price?.toString() || '0',
               },
-            })
-          }
-        >
+            });
+          }}>
           <Text style={styles.selectDateText}>Đặt phòng</Text>
         </TouchableOpacity>
       </View>
@@ -368,49 +350,4 @@ const styles = StyleSheet.create({
   priceSubLabel: { fontSize: 14, fontWeight: '500', color: BOOKING_COLORS.TEXT_SECONDARY },
   selectDateButton: { backgroundColor: BOOKING_COLORS.PRIMARY, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
   selectDateText: { fontSize: 16, fontWeight: '600', color: BOOKING_COLORS.BACKGROUND },
-  amenityCategory: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: BOOKING_COLORS.TEXT_PRIMARY,
-    marginBottom: 8,
-  },
-  amenityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: 8,
-    gap: 6,
-  },
-  amenityText: {
-    fontSize: 14,
-    color: BOOKING_COLORS.TEXT_SECONDARY,
-  },
-  fullscreenContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  fullscreenImage: {
-    width: '100%',
-    height: '100%',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 101,
-  },
-
-
 });
