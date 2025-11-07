@@ -56,6 +56,11 @@ export const cancelBooking = async (bookingId: number): Promise<BookingResponse>
   return response.data.data;
 };
 
+export const confirmBooking = async (bookingId: number): Promise<BookingResponse> => {
+  const response = await axiosInstance.put(`bookings/${bookingId}/confirm`);
+  return response.data.data;
+};
+
 export const getUserBookings = async (): Promise<BookingResponse[]> => {
   const response = await axiosInstance.get('bookings');
   return response.data.data;

@@ -32,7 +32,6 @@ public class ReviewServiceImpl implements ReviewService {
         Room room = roomRepository.findById(request.getRoomId())
             .orElseThrow(() -> new NotFoundException("Không tìm thấy phòng với ID: " + request.getRoomId()));
         
-        // Check if user already reviewed this room - if exists, throw error
         if (reviewRepository.existsByUser_UserIdAndRoom_RoomId(user.getUserId(), room.getRoomId())) {
             throw new RuntimeException("Bạn đã đánh giá phòng này rồi. Vui lòng sử dụng chức năng cập nhật.");
         }

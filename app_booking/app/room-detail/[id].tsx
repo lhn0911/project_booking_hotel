@@ -19,6 +19,32 @@ import { BOOKING_COLORS } from '@/constants/booking';
 import { getRoomById, RoomResponse } from '@/apis/roomApi';
 import { getReviewsByRoomId, ReviewResponse } from '@/apis/reviewApi';
 
+const generalAmenities = [
+  { name: 'TIVI LED 48 inch', icon: 'tv-outline' as const },
+  { name: 'Dép đi trong phòng', icon: 'footsteps-outline' as const },
+  { name: 'Bộ kim chỉ', icon: 'construct-outline' as const },
+  { name: 'Xi đánh giày', icon: 'brush-outline' as const },
+  { name: 'Két sắt', icon: 'lock-closed-outline' as const },
+  { name: 'Đèn pin', icon: 'flashlight-outline' as const },
+  { name: 'Bàn ủi và bàn để ủi quần áo', icon: 'shirt-outline' as const },
+  { name: 'Cân', icon: 'scale-outline' as const },
+  { name: 'Điện thoại', icon: 'call-outline' as const },
+  { name: 'Bàn làm việc văn phòng', icon: 'desktop-outline' as const },
+  { name: 'Túi mua hàng', icon: 'bag-outline' as const },
+  { name: 'Quầy bar nhỏ', icon: 'wine-outline' as const },
+  { name: 'Cái xỏ giày', icon: 'footsteps-outline' as const },
+  { name: 'Bình trà', icon: 'cafe-outline' as const },
+];
+
+const bathroomAmenities = [
+  { name: 'Bàn chải đánh răng và kem đánh răng dùng một lần', icon: 'brush-outline' as const },
+  { name: 'Dao cạo râu', icon: 'cut-outline' as const },
+  { name: 'Muối tắm', icon: 'water-outline' as const },
+  { name: 'Áo choàng tắm', icon: 'shirt-outline' as const },
+  { name: 'Máy sấy tóc', icon: 'flash-outline' as const },
+  { name: 'Sữa tắm', icon: 'water-outline' as const },
+];
+
 export default function RoomDetailScreen(): React.JSX.Element {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -102,19 +128,35 @@ export default function RoomDetailScreen(): React.JSX.Element {
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
         {/* Main Image */}
-        <View style={[styles.imageContainer, { width }]}>
-          <ExpoImage
-            source={{
-              uri:
-                room.imageUrls && room.imageUrls.length > 0
-                  ? room.imageUrls[0]
-                  : "https://via.placeholder.com/400x200?text=No+Image",
-            }}
-            style={styles.mainImage}
-            contentFit="cover"
-            transition={200}
-          />
-        </View>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            if (room.imageUrls && room.imageUrls.length > 0) {
+              router.push(`/room-photos/${id}`);
+            }
+          }}>
+          <View style={[styles.imageContainer, { width }]}>
+            <ExpoImage
+              source={{
+                uri:
+                  room.imageUrls && room.imageUrls.length > 0
+                    ? room.imageUrls[0]
+                    : "https://via.placeholder.com/400x200?text=No+Image",
+              }}
+              style={styles.mainImage}
+              contentFit="cover"
+              transition={200}
+            />
+            {room.imageUrls && room.imageUrls.length > 0 && (
+              <View style={styles.imageOverlay}>
+                <View style={styles.imageOverlayContent}>
+                  <Ionicons name="images-outline" size={20} color={BOOKING_COLORS.BACKGROUND} />
+                  <Text style={styles.imageCountText}>{room.imageUrls.length} ảnh</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
 
 
         {/* Room Info */}
@@ -158,17 +200,31 @@ export default function RoomDetailScreen(): React.JSX.Element {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Hình ảnh</Text>
+                <TouchableOpacity
+                  onPress={() => router.push(`/room-photos/${id}`)}
+                  style={styles.viewAllButton}>
+                  <Text style={styles.viewAllButtonText}>Xem tất cả</Text>
+                  <Ionicons name="chevron-forward" size={16} color={BOOKING_COLORS.PRIMARY} />
+                </TouchableOpacity>
               </View>
               <FlatList
-                data={room.imageUrls}
-                renderItem={({ item }) => (
-                  <View style={styles.photoThumbnail}>
+                data={room.imageUrls.slice(0, 5)}
+                renderItem={({ item, index }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push(`/room-photos/${id}`)}
+                    style={styles.photoThumbnail}>
                     <ExpoImage
                       source={{ uri: item }}
                       style={styles.photoImage}
                       contentFit="cover"
                     />
-                  </View>
+                    {index === 4 && room.imageUrls && room.imageUrls.length > 5 && (
+                      <View style={styles.moreImagesOverlay}>
+                        <Text style={styles.moreImagesText}>+{room.imageUrls.length - 5}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 )}
                 keyExtractor={(item, index) => index.toString()}
                 horizontal
@@ -182,6 +238,37 @@ export default function RoomDetailScreen(): React.JSX.Element {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Chi tiết phòng</Text>
             <Text style={styles.featureText}>Sức chứa: {room.capacity} người</Text>
+          </View>
+
+          {/* Amenities */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tiện ích</Text>
+            
+            {/* General Amenities */}
+            <View style={styles.amenitiesGroup}>
+              <Text style={styles.amenitiesGroupTitle}>Tiện nghi chung</Text>
+              <View style={styles.amenitiesGrid}>
+                {generalAmenities.map((amenity, index) => (
+                  <View key={index} style={styles.amenityItem}>
+                    <Ionicons name={amenity.icon} size={20} color={BOOKING_COLORS.PRIMARY} />
+                    <Text style={styles.amenityText}>{amenity.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Bathroom Amenities */}
+            <View style={styles.amenitiesGroup}>
+              <Text style={styles.amenitiesGroupTitle}>Tiện nghi phòng tắm</Text>
+              <View style={styles.amenitiesGrid}>
+                {bathroomAmenities.map((amenity, index) => (
+                  <View key={index} style={styles.amenityItem}>
+                    <Ionicons name={amenity.icon} size={20} color={BOOKING_COLORS.PRIMARY} />
+                    <Text style={styles.amenityText}>{amenity.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* Reviews Section */}
@@ -273,8 +360,27 @@ const styles = StyleSheet.create({
   headerButtonTransparent: { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderRadius: 20 },
   headerRight: { flexDirection: 'row', gap: 8 },
   scrollView: { flex: 1 },
-  imageContainer: { height: 300 },
+  imageContainer: { height: 300, position: 'relative' },
   mainImage: { width: '100%', height: '100%' },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  imageOverlayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageCountText: {
+    color: BOOKING_COLORS.BACKGROUND,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   content: { padding: 16 },
   roomName: { fontSize: 24, fontWeight: '700', color: BOOKING_COLORS.TEXT_PRIMARY, marginBottom: 8 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 24 },
@@ -284,9 +390,64 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '700', color: BOOKING_COLORS.TEXT_PRIMARY, marginBottom: 12 },
   overviewText: { fontSize: 16, color: BOOKING_COLORS.TEXT_SECONDARY, lineHeight: 24 },
   photosList: { gap: 12 },
-  photoThumbnail: { width: 100, height: 100, borderRadius: 12, overflow: 'hidden' },
+  photoThumbnail: { width: 100, height: 100, borderRadius: 12, overflow: 'hidden', position: 'relative' },
   photoImage: { width: '100%', height: '100%' },
+  moreImagesOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreImagesText: {
+    color: BOOKING_COLORS.BACKGROUND,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BOOKING_COLORS.PRIMARY,
+  },
   featureText: { fontSize: 16, color: BOOKING_COLORS.TEXT_PRIMARY, lineHeight: 24, marginBottom: 8 },
+  amenitiesGroup: {
+    marginBottom: 24,
+  },
+  amenitiesGroupTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
+  },
+  amenitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  amenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '48%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: BOOKING_COLORS.CARD_BACKGROUND,
+    borderRadius: 8,
+    gap: 8,
+  },
+  amenityText: {
+    fontSize: 14,
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',

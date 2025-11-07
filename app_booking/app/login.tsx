@@ -1,11 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState, useEffect } from "react";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeInDown, FadeInUp, FadeIn } from "react-native-reanimated";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import axiosInstance from "../utils/axiosInstance";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -13,6 +18,64 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Google OAuth configuration
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com", // Cần thay bằng Google Client ID thật
+      scopes: ["openid", "profile", "email"],
+      redirectUri: AuthSession.makeRedirectUri(),
+    },
+    {
+      authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+    }
+  );
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      handleGoogleSignIn(response.authentication?.accessToken);
+    }
+  }, [response]);
+
+  const handleGoogleSignIn = async (accessToken?: string) => {
+    if (!accessToken) return;
+    
+    setGoogleLoading(true);
+    try {
+      // Gọi API backend để xử lý Google Sign-In
+      const res = await axiosInstance.post("auth/google", {
+        accessToken,
+      });
+
+      const data = res?.data;
+      if (data?.token && data?.refreshToken) {
+        await AsyncStorage.setItem("accessToken", data.token);
+        await AsyncStorage.setItem("refreshToken", data.refreshToken);
+        await AsyncStorage.setItem(
+          "userProfile",
+          JSON.stringify({
+            fullName: data.fullName || "",
+            email: data.email || "",
+            phone: data.phone || "",
+          })
+        );
+
+        Alert.alert("Thành công", "Đăng nhập bằng Google thành công!");
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Lỗi", "Không nhận được token từ server");
+      }
+    } catch (e: any) {
+      console.log("Google Sign-In error:", e?.response?.data);
+      const errorMessage = e?.response?.data?.message || 
+                          e?.response?.status === 404 ? "Tính năng đăng nhập Google chưa được kích hoạt. Vui lòng sử dụng email/password." :
+                          "Không thể đăng nhập bằng Google. Vui lòng thử lại.";
+      Alert.alert("Lỗi", errorMessage);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
   const onLogin = async () => {
     // Validate email
     if (!email.trim()) {
@@ -86,29 +149,40 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Logo */}
-        <View style={styles.logoContainer}>
+        <Animated.View 
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.logoContainer}
+        >
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>LG</Text>
           </View>
           <Text style={styles.logoTitle}>live Green</Text>
-        </View>
+        </Animated.View>
 
         {/* Header */}
-        <View style={styles.header}>
+        <Animated.View 
+          entering={FadeInDown.delay(100).duration(600).springify()}
+          style={styles.header}
+        >
           <Text style={styles.title}>Let's get you Login!</Text>
           <Text style={styles.subtitle}>Enter your information below</Text>
-        </View>
+        </Animated.View>
 
         {/* Social Login Buttons */}
-        <View style={styles.socialContainer}>
+        <Animated.View 
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.socialContainer}
+        >
           <View style={styles.socialButtonWrapper}>
             <Button
               title="Google"
-              onPress={() => { }}
+              onPress={() => promptAsync()}
               variant="outline"
               icon="logo-google"
               iconPosition="left"
               fullWidth={true}
+              isLoading={googleLoading}
+              disabled={googleLoading || !request}
             />
           </View>
           <View style={styles.socialSpacer} />
@@ -122,17 +196,23 @@ export default function LoginScreen() {
               fullWidth={true}
             />
           </View>
-        </View>
+        </Animated.View>
 
         {/* Separator */}
-        <View style={styles.separatorContainer}>
+        <Animated.View 
+          entering={FadeInDown.delay(300).duration(600).springify()}
+          style={styles.separatorContainer}
+        >
           <View style={styles.separatorLine} />
           <Text style={styles.separatorText}>Or login with</Text>
           <View style={styles.separatorLine} />
-        </View>
+        </Animated.View>
 
         {/* Form */}
-        <View style={styles.form}>
+        <Animated.View 
+          entering={FadeInDown.delay(400).duration(600).springify()}
+          style={styles.form}
+        >
           <Input
             label="Email Address"
             placeholder="Enter Email"
@@ -155,7 +235,12 @@ export default function LoginScreen() {
             onTogglePassword={() => setShowPassword(!showPassword)}
           />
 
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          <Text 
+            style={styles.forgotPassword}
+            onPress={() => router.push("/forgot-password")}
+          >
+            Forgot Password?
+          </Text>
 
           <Button
             title="Login"
@@ -164,10 +249,13 @@ export default function LoginScreen() {
             isLoading={loading}
             disabled={!isFormValid}
           />
-        </View>
+        </Animated.View>
 
         {/* Register Link */}
-        <View style={styles.registerContainer}>
+        <Animated.View 
+          entering={FadeInDown.delay(500).duration(600).springify()}
+          style={styles.registerContainer}
+        >
           <Text style={styles.registerText}>Don't have an account? </Text>
           <Text
             style={styles.registerLink}
@@ -175,7 +263,7 @@ export default function LoginScreen() {
           >
             Register Now
           </Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

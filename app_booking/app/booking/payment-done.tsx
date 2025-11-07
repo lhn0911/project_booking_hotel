@@ -19,22 +19,28 @@ export default function PaymentDoneScreen(): React.JSX.Element {
   const params = useLocalSearchParams();
 
   useEffect(() => {
-    // Create booking when payment is done
+    // Create booking only for cash payment (card and banking already created booking)
     const createBookingFromPayment = async () => {
-      try {
-        if (params.roomId && params.checkIn && params.checkOut) {
-          const bookingData: BookingRequest = {
-            roomId: parseInt(params.roomId as string),
-            checkIn: params.checkIn as string,
-            checkOut: params.checkOut as string,
-            adultsCount: parseInt(params.adults as string) || 2,
-            childrenCount: parseInt(params.children as string) || 0,
-            infantsCount: parseInt(params.infants as string) || 0,
-          };
-          await createBooking(bookingData);
+      const paymentMethod = params.paymentMethod as string;
+      
+      // Only create booking for cash payment
+      // Card and banking payments already created booking in their respective screens
+      if (paymentMethod === 'cash') {
+        try {
+          if (params.roomId && params.checkIn && params.checkOut) {
+            const bookingData: BookingRequest = {
+              roomId: parseInt(params.roomId as string),
+              checkIn: params.checkIn as string,
+              checkOut: params.checkOut as string,
+              adultsCount: parseInt(params.adults as string) || 2,
+              childrenCount: parseInt(params.children as string) || 0,
+              infantsCount: parseInt(params.infants as string) || 0,
+            };
+            await createBooking(bookingData);
+          }
+        } catch (error) {
+          console.error('Error creating booking:', error);
         }
-      } catch (error) {
-        console.error('Error creating booking:', error);
       }
     };
 
@@ -65,13 +71,13 @@ export default function PaymentDoneScreen(): React.JSX.Element {
             </View>
 
             {/* Success Message */}
-            <Text style={styles.successTitle}>Payment Received Successfully</Text>
+            <Text style={styles.successTitle}>Thanh toán thành công</Text>
             <Text style={styles.successMessage}>
-              Congratulations ✨ Your booking has been confirmed
+              Chúc mừng ✨ Đặt phòng của bạn đã được xác nhận
             </Text>
 
             <TouchableOpacity style={styles.homeButton} onPress={handleBackToHome}>
-              <Text style={styles.homeButtonText}>Back to Home</Text>
+              <Text style={styles.homeButtonText}>Về trang chủ</Text>
             </TouchableOpacity>
           </View>
         </View>

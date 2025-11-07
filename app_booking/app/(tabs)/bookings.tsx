@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 import { BOOKING_COLORS } from '@/constants/booking';
 import { getUpcomingBookings, getPastBookings, cancelBooking, BookingResponse } from '@/apis/bookingApi';
 import { useRouter } from 'expo-router';
@@ -36,6 +37,17 @@ export default function BookingsScreen(): React.JSX.Element {
     queryFn: getPastBookings,
     enabled: activeTab === 'past',
   });
+
+  // Refetch bookings when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (activeTab === 'upcoming') {
+        refetchUpcoming();
+      } else {
+        refetchPast();
+      }
+    }, [activeTab, refetchUpcoming, refetchPast])
+  );
 
   const handleCancelBooking = async (bookingId: number) => {
     Alert.alert(
@@ -170,7 +182,22 @@ export default function BookingsScreen(): React.JSX.Element {
 
   const renderBookings = () => {
     const isLoading = activeTab === 'upcoming' ? loadingUpcoming : loadingPast;
-    const bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+    let bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+
+    // Filter bookings based on payment status
+    // Upcoming: PENDING (chưa thanh toán)
+    // Past: CONFIRMED (đã thanh toán) - bất kể checkOut date
+    if (bookings) {
+      bookings = bookings.filter((booking) => {
+        if (activeTab === 'upcoming') {
+          // Upcoming: chỉ hiển thị PENDING (chưa thanh toán)
+          return booking.status === 'PENDING';
+        } else {
+          // Past: hiển thị tất cả CONFIRMED (đã thanh toán)
+          return booking.status === 'CONFIRMED';
+        }
+      });
+    }
 
     if (isLoading) {
       return (
@@ -186,7 +213,7 @@ export default function BookingsScreen(): React.JSX.Element {
         <View style={styles.centerContent}>
           <Ionicons name="calendar-outline" size={64} color={BOOKING_COLORS.TEXT_SECONDARY} />
           <Text style={styles.emptyText}>
-            {activeTab === 'upcoming' ? 'Chưa có đặt phòng sắp tới' : 'Chưa có đặt phòng đã qua'}
+            {activeTab === 'upcoming' ? 'Chưa có đặt phòng chưa thanh toán' : 'Chưa có đặt phòng đã thanh toán'}
           </Text>
         </View>
       );

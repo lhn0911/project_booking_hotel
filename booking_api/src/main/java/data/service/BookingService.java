@@ -11,6 +11,7 @@ public interface BookingService {
     List<BookingResponseDTO> getPastBookings(Integer userId);
     BookingResponseDTO getBookingById(Integer bookingId);
     BookingResponseDTO cancelBooking(Integer bookingId);
+    BookingResponseDTO confirmBooking(Integer bookingId);
     List<BookingResponseDTO> getUserBookings(Integer userId);
 }
 

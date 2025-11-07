@@ -129,13 +129,26 @@ export default function HomeScreen(): React.JSX.Element {
         {/* Search Bar */}
         <SearchBar onPress={() => router.push('/search')} />
 
-        {/* City Categories */}
+        {/* Hotel Categories */}
         {cities.length > 0 && (
           <View style={styles.citiesSection}>
             <FlatList
               data={cities}
               renderItem={({ item }) => (
-                <CityButton city={item} onPress={() => router.push('/filter')} />
+                <CityButton
+                  city={item}
+                  onPress={() => {
+                    // Filter rooms by hotel name
+                    const filteredRooms = nearbyRooms.filter(
+                      (room) => room.location === item.name
+                    );
+                    // Navigate to search with hotel filter
+                    router.push({
+                      pathname: '/search',
+                      params: { hotelName: item.name },
+                    });
+                  }}
+                />
               )}
               keyExtractor={(item) => item.id}
               horizontal

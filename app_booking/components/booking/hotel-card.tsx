@@ -47,7 +47,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({
         </TouchableOpacity>
         <View style={styles.ratingBadge}>
           <Ionicons name="star" size={12} color={BOOKING_COLORS.RATING} />
-          <Text style={styles.ratingText}>{hotel.rating}</Text>
+          <Text style={styles.ratingText}>{hotel.rating ? hotel.rating.toFixed(1) : '0.0'}</Text>
         </View>
       </View>
 

@@ -32,14 +32,20 @@ export default function RootLayout(): React.JSX.Element {
             <Stack.Screen name="search" options={{ headerShown: false }} />
             <Stack.Screen name="hotel-detail/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="room-detail/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="room-photos/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="filter" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             <Stack.Screen name="booking/select-guest" options={{ headerShown: false }} />
             <Stack.Screen name="booking/confirm-pay" options={{ headerShown: false }} />
+            <Stack.Screen name="booking/banking-payment" options={{ headerShown: false }} />
             <Stack.Screen name="booking/add-card" options={{ headerShown: false }} />
             <Stack.Screen name="booking/payment-done" options={{ headerShown: false }} />
             <Stack.Screen name="booking/write-review" options={{ headerShown: false }} />
             <Stack.Screen name="booking/booking-detail" options={{ headerShown: false }} />
+            <Stack.Screen name="account/edit-profile" options={{ headerShown: false }} />
+            <Stack.Screen name="account/change-password" options={{ headerShown: false }} />
+            <Stack.Screen name="account/terms-conditions" options={{ headerShown: false }} />
+            <Stack.Screen name="account/privacy-policy" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

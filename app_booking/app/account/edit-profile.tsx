@@ -1,6 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Platform,
@@ -11,12 +12,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import Button from "../components/Button";
-import Input from "../components/Input";
-import axiosInstance from "../utils/axiosInstance";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import Button from "../../components/Button";
+import Input from "../../components/Input";
+import axiosInstance from "../../utils/axiosInstance";
 
-export default function RegisterScreen() {
+export default function EditProfileScreen() {
   const router = useRouter();
   const [form, setForm] = useState({
     fullName: "",
@@ -25,13 +27,48 @@ export default function RegisterScreen() {
     dateOfBirth: new Date(),
     gender: "Male" as "Male" | "Female",
   });
+  const [originalPhoneNumber, setOriginalPhoneNumber] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [needsOtp, setNeedsOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const res = await axiosInstance.get("auth/me");
+      const data = res.data.data;
+      if (data) {
+        const dob = data.dateOfBirth ? new Date(data.dateOfBirth) : new Date();
+        setForm({
+          fullName: data.fullName || "",
+          email: data.email || "",
+          phoneNumber: data.phoneNumber || "",
+          dateOfBirth: dob,
+          gender: data.gender || "Male",
+        });
+        setOriginalPhoneNumber(data.phoneNumber || "");
+      }
+    } catch (e: any) {
+      console.log("Load profile error:", e?.response?.data);
+      Alert.alert("Lỗi", "Không thể tải thông tin profile");
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   const handleChange = (key: string, value: string | Date) => {
     setForm({ ...form, [key]: value });
-    setErrors({ ...errors, [key]: "" }); // xóa lỗi khi user nhập lại
+    setErrors({ ...errors, [key]: "" });
+    if (key === "phoneNumber" && needsOtp) {
+      setNeedsOtp(false);
+      setOtp("");
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -65,11 +102,9 @@ export default function RegisterScreen() {
     const phoneNumberClean = phoneNumber.replace(/\D/g, "");
 
     if (!fullName.trim()) newErrors.fullName = "Vui lòng nhập họ và tên";
-
     if (!email.trim()) newErrors.email = "Vui lòng nhập email";
     else if (!/^[A-Za-z0-9._%+-]+@gmail\.com$/.test(email))
       newErrors.email = "Email phải có định dạng @gmail.com";
-
     if (!phoneNumberClean) newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
     else if (!/^0\d{9}$/.test(phoneNumberClean))
       newErrors.phoneNumber = "Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số";
@@ -78,93 +113,115 @@ export default function RegisterScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-
-  const onRegister = async () => {
+  const onUpdate = async () => {
     if (!validateForm()) return;
 
     const { fullName, email, phoneNumber, dateOfBirth, gender } = form;
     const phoneNumberClean = phoneNumber.replace(/\D/g, "");
-
     const year = dateOfBirth.getFullYear();
     const month = String(dateOfBirth.getMonth() + 1).padStart(2, "0");
     const day = String(dateOfBirth.getDate()).padStart(2, "0");
     const dateOfBirthFormatted = `${year}-${month}-${day}`;
 
+    // Kiểm tra nếu đổi số điện thoại
+    const phoneChanged = phoneNumberClean !== originalPhoneNumber.replace(/\D/g, "");
+    
+    if (phoneChanged && !needsOtp && !otp) {
+      // Lần đầu đổi số điện thoại, gửi OTP
+      setLoading(true);
+      try {
+        const res = await axiosInstance.put("auth/profile", {
+          fullName,
+          email,
+          phoneNumber: phoneNumberClean,
+          dateOfBirth: dateOfBirthFormatted,
+          gender,
+        });
+        
+        if (res.data?.message?.includes("OTP")) {
+          setNeedsOtp(true);
+          Alert.alert("Thông báo", "OTP đã được gửi đến số điện thoại mới. Vui lòng nhập OTP để xác thực.");
+        }
+      } catch (e: any) {
+        const errorMessage = e?.response?.data?.message || "Không thể cập nhật thông tin";
+        if (errorMessage.includes("OTP")) {
+          setNeedsOtp(true);
+          Alert.alert("Thông báo", errorMessage);
+        } else {
+          Alert.alert("Lỗi", errorMessage);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await axiosInstance.post("auth/register", {
+      const res = await axiosInstance.put("auth/profile", {
         fullName,
         email,
         phoneNumber: phoneNumberClean,
         dateOfBirth: dateOfBirthFormatted,
         gender,
+        otp: phoneChanged ? otp : undefined,
       });
 
-      if (res.status === 200 || res.status === 201) {
-        if (res.data?.success || res.data?.data) {
-          Alert.alert("Thành công", res.data?.message || "Đăng ký thành công. Vui lòng kiểm tra mã OTP.");
-          router.push({
-            pathname: "/verify-otp",
-            params: { phoneNumber: phoneNumberClean },
-          });
-        } else {
-          Alert.alert("Lỗi", res?.data?.message || "Không thể đăng ký");
-        }
-      } else {
-        Alert.alert("Lỗi", res?.data?.message || "Không thể đăng ký");
+      if (res.data?.success) {
+        // Cập nhật AsyncStorage
+        const profileData = {
+          fullName: res.data.data.fullName,
+          email: res.data.data.email,
+          phone: res.data.data.phoneNumber,
+        };
+        await AsyncStorage.setItem("userProfile", JSON.stringify(profileData));
+        
+        Alert.alert("Thành công", "Cập nhật thông tin thành công", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
       }
     } catch (e: any) {
-      const errorMessage =
-        e?.response?.data?.message ||
-        e?.response?.data?.errors ||
-        "Đã xảy ra lỗi khi đăng ký";
-      Alert.alert("Đăng ký thất bại", errorMessage);
+      const errorMessage = e?.response?.data?.message || "Không thể cập nhật thông tin";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormValid =
-    form.fullName.length > 0 &&
-    form.email.length > 0 &&
-    form.phoneNumber.replace(/\D/g, "").length === 10;
+  if (loadingProfile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Đang tải...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animated.View 
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.logoContainer}
-        >
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>LG</Text>
-          </View>
-          <Text style={styles.logoTitle}>live Green</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#3182CE" />
+        </TouchableOpacity>
+
+        <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
+          <Text style={styles.title}>Chỉnh sửa hồ sơ</Text>
+          <Text style={styles.subtitle}>Cập nhật thông tin cá nhân của bạn</Text>
         </Animated.View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(100).duration(600).springify()}
-          style={styles.header}
-        >
-          <Text style={styles.title}>Register Now!</Text>
-          <Text style={styles.subtitle}>Enter your information below</Text>
-        </Animated.View>
-
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.form}
-        >
+        <Animated.View entering={FadeInDown.delay(100).duration(600).springify()} style={styles.form}>
           <Input
-            label="Full Name"
-            placeholder="Enter Full Name"
+            label="Họ và tên"
+            placeholder="Nhập họ và tên"
             value={form.fullName}
             onChangeText={(text: any) => handleChange("fullName", text)}
           />
           {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
 
           <Input
-            label="Email Address"
-            placeholder="Enter Email"
+            label="Email"
+            placeholder="Nhập email"
             value={form.email}
             onChangeText={(text: any) => handleChange("email", text)}
             keyboardType="email-address"
@@ -173,18 +230,29 @@ export default function RegisterScreen() {
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
           <Input
-            label="Mobile Number"
-            placeholder="Enter Mobile Number"
+            label="Số điện thoại"
+            placeholder="Nhập số điện thoại"
             value={form.phoneNumber}
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
           />
           {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
+          {needsOtp && (
+            <View style={styles.otpContainer}>
+              <Input
+                label="OTP"
+                placeholder="Nhập OTP đã gửi đến số điện thoại mới"
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+              />
+            </View>
+          )}
 
           <Input
-            label="Date of Birth"
-            placeholder="Select Date of Birth"
-            onChangeText={() => { }}
+            label="Ngày sinh"
+            placeholder="Chọn ngày sinh"
+            onChangeText={() => {}}
             value={formatDate(form.dateOfBirth)}
             editable={false}
             onPress={() => setShowDatePicker(true)}
@@ -205,7 +273,7 @@ export default function RegisterScreen() {
           )}
 
           <View style={styles.genderContainer}>
-            <Text style={styles.genderLabel}>Gender</Text>
+            <Text style={styles.genderLabel}>Giới tính</Text>
             <View style={styles.genderOptions}>
               {["Male", "Female"].map((g) => (
                 <TouchableOpacity
@@ -213,21 +281,11 @@ export default function RegisterScreen() {
                   style={[styles.genderOption, form.gender === g && styles.genderOptionSelected]}
                   onPress={() => handleChange("gender", g)}
                 >
-                  <View
-                    style={[
-                      styles.radioButton,
-                      form.gender === g && styles.radioButtonSelected,
-                    ]}
-                  >
+                  <View style={[styles.radioButton, form.gender === g && styles.radioButtonSelected]}>
                     {form.gender === g && <View style={styles.radioButtonInner} />}
                   </View>
-                  <Text
-                    style={[
-                      styles.genderText,
-                      form.gender === g && styles.genderTextSelected,
-                    ]}
-                  >
-                    {g}
+                  <Text style={[styles.genderText, form.gender === g && styles.genderTextSelected]}>
+                    {g === "Male" ? "Nam" : "Nữ"}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -235,22 +293,12 @@ export default function RegisterScreen() {
           </View>
 
           <Button
-            title="Register"
-            onPress={onRegister}
+            title="Cập nhật"
+            onPress={onUpdate}
             variant="primary"
             isLoading={loading}
             disabled={loading}
           />
-        </Animated.View>
-
-        <Animated.View 
-          entering={FadeInDown.delay(600).duration(600).springify()}
-          style={styles.loginContainer}
-        >
-          <Text style={styles.loginText}>Already a member? </Text>
-          <Text style={styles.loginLink} onPress={() => router.replace("/login")}>
-            Login
-          </Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -260,23 +308,8 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#3182CE",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  logoText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-  logoTitle: { fontSize: 20, fontWeight: "600", color: "#3182CE" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  backButton: { marginBottom: 20, width: 40, height: 40, justifyContent: "center" },
   header: { marginBottom: 32 },
   title: { fontSize: 28, fontWeight: "bold", color: "#3182CE", marginBottom: 8 },
   subtitle: { fontSize: 14, color: "#718096" },
@@ -285,6 +318,7 @@ const styles = StyleSheet.create({
   genderLabel: { fontSize: 14, fontWeight: "600", color: "#1A202C", marginBottom: 12 },
   genderOptions: { flexDirection: "row", gap: 16 },
   genderOption: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  genderOptionSelected: { backgroundColor: "#EBF8FF", borderRadius: 8, paddingHorizontal: 8 },
   radioButton: {
     width: 20,
     height: 20,
@@ -300,14 +334,6 @@ const styles = StyleSheet.create({
   genderText: { fontSize: 16, color: "#4A5568" },
   genderTextSelected: { color: "#3182CE", fontWeight: "500" },
   errorText: { color: "#E53E3E", fontSize: 13, marginTop: -8, marginBottom: 10 },
-  loginContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-  },
-  genderOptionSelected: { backgroundColor: "#EBF8FF", borderRadius: 8, paddingHorizontal: 8 },
-
-  loginText: { fontSize: 14, color: "#718096" },
-  loginLink: { fontSize: 14, color: "#3182CE", fontWeight: "600" },
+  otpContainer: { marginTop: 16 },
 });
+

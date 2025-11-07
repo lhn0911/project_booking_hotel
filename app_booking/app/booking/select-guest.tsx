@@ -6,19 +6,30 @@ import {
   TouchableOpacity,
   StatusBar,
   ImageBackground,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { BOOKING_COLORS } from '@/constants/booking';
 
 export default function SelectGuestScreen(): React.JSX.Element {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  
+  // Parse dates from params or use defaults
+  const defaultCheckIn = params.checkIn ? new Date(params.checkIn as string) : new Date();
+  const defaultCheckOut = params.checkOut ? new Date(params.checkOut as string) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+  
   const [adults, setAdults] = useState<number>(parseInt(params.adults as string) || 2);
-  const [children, setChildren] = useState<number>(parseInt(params.children as string) || 2);
+  const [children, setChildren] = useState<number>(parseInt(params.children as string) || 0);
   const [infants, setInfants] = useState<number>(parseInt(params.infants as string) || 0);
+  const [checkIn, setCheckIn] = useState<Date>(defaultCheckIn);
+  const [checkOut, setCheckOut] = useState<Date>(defaultCheckOut);
+  const [showCheckInPicker, setShowCheckInPicker] = useState(false);
+  const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
 
   const handleIncrement = (type: 'adults' | 'children' | 'infants') => {
     if (type === 'adults') {
@@ -40,7 +51,18 @@ export default function SelectGuestScreen(): React.JSX.Element {
     }
   };
 
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
   const handleNext = () => {
+    // Ensure checkOut is after checkIn
+    if (checkOut <= checkIn) {
+      const newCheckOut = new Date(checkIn);
+      newCheckOut.setDate(newCheckOut.getDate() + 1);
+      setCheckOut(newCheckOut);
+    }
+
     router.push({
       pathname: '/booking/confirm-pay',
       params: {
@@ -48,7 +70,17 @@ export default function SelectGuestScreen(): React.JSX.Element {
         adults: adults.toString(),
         children: children.toString(),
         infants: infants.toString(),
+        checkIn: formatDate(checkIn),
+        checkOut: formatDate(checkOut),
       },
+    });
+  };
+
+  const formatDisplayDate = (date: Date): string => {
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
     });
   };
 
@@ -96,14 +128,71 @@ export default function SelectGuestScreen(): React.JSX.Element {
         blurRadius={20}>
         <View style={styles.blurOverlay}>
           <View style={styles.contentCard}>
-            <Text style={styles.title}>Select Guest</Text>
+            <Text style={styles.title}>Chọn ngày và số khách</Text>
 
-            {renderGuestSelector('Adults', 'Ages 14 or above', adults, 'adults')}
-            {renderGuestSelector('Children', 'Ages 2-13', children, 'children')}
-            {renderGuestSelector('Infants', 'Under 2', infants, 'infants')}
+            {/* Date Selection */}
+            <View style={styles.dateSection}>
+              <Text style={styles.sectionLabel}>Ngày nhận phòng</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowCheckInPicker(true)}>
+                <Ionicons name="calendar-outline" size={20} color={BOOKING_COLORS.PRIMARY} />
+                <Text style={styles.dateText}>{formatDisplayDate(checkIn)}</Text>
+              </TouchableOpacity>
+              {showCheckInPicker && (
+                <DateTimePicker
+                  value={checkIn}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowCheckInPicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      setCheckIn(selectedDate);
+                      // Auto adjust checkOut if it's before or equal to checkIn
+                      if (checkOut <= selectedDate) {
+                        const newCheckOut = new Date(selectedDate);
+                        newCheckOut.setDate(newCheckOut.getDate() + 1);
+                        setCheckOut(newCheckOut);
+                      }
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.dateSection}>
+              <Text style={styles.sectionLabel}>Ngày trả phòng</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowCheckOutPicker(true)}>
+                <Ionicons name="calendar-outline" size={20} color={BOOKING_COLORS.PRIMARY} />
+                <Text style={styles.dateText}>{formatDisplayDate(checkOut)}</Text>
+              </TouchableOpacity>
+              {showCheckOutPicker && (
+                <DateTimePicker
+                  value={checkOut}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  minimumDate={new Date(checkIn.getTime() + 24 * 60 * 60 * 1000)}
+                  onChange={(event, selectedDate) => {
+                    setShowCheckOutPicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      setCheckOut(selectedDate);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Guest Selection */}
+            <Text style={styles.sectionLabel}>Số lượng khách</Text>
+            {renderGuestSelector('Người lớn', 'Từ 14 tuổi trở lên', adults, 'adults')}
+            {renderGuestSelector('Trẻ em', 'Từ 2-13 tuổi', children, 'children')}
+            {renderGuestSelector('Trẻ sơ sinh', 'Dưới 2 tuổi', infants, 'infants')}
 
             <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-              <Text style={styles.nextButtonText}>Next</Text>
+              <Text style={styles.nextButtonText}>Tiếp tục</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -139,7 +228,33 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: BOOKING_COLORS.TEXT_PRIMARY,
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  dateSection: {
+    marginBottom: 20,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: BOOKING_COLORS.BORDER,
+    borderRadius: 12,
+    backgroundColor: BOOKING_COLORS.BACKGROUND,
+  },
+  dateText: {
+    fontSize: 16,
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    flex: 1,
   },
   guestSection: {
     flexDirection: 'row',

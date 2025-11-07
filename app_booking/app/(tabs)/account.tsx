@@ -60,21 +60,45 @@ export default function AccountScreen() {
       </View>
 
       <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push("/account/edit-profile")}
+        >
           <Ionicons name="person-circle-outline" size={24} color="#4A5568" />
           <Text style={styles.menuText}>Chỉnh sửa hồ sơ</Text>
           <FontAwesome5 name="chevron-right" size={16} color="#A0AEC0" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="settings-outline" size={24} color="#4A5568" />
-          <Text style={styles.menuText}>Cài đặt</Text>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push("/account/change-password")}
+        >
+          <Ionicons name="lock-closed-outline" size={24} color="#4A5568" />
+          <Text style={styles.menuText}>Đổi mật khẩu</Text>
           <FontAwesome5 name="chevron-right" size={16} color="#A0AEC0" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
           <Ionicons name="notifications-outline" size={24} color="#4A5568" />
           <Text style={styles.menuText}>Thông báo</Text>
+          <FontAwesome5 name="chevron-right" size={16} color="#A0AEC0" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push("/account/terms-conditions")}
+        >
+          <Ionicons name="document-text-outline" size={24} color="#4A5568" />
+          <Text style={styles.menuText}>Điều khoản & Điều kiện</Text>
+          <FontAwesome5 name="chevron-right" size={16} color="#A0AEC0" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => router.push("/account/privacy-policy")}
+        >
+          <Ionicons name="shield-checkmark-outline" size={24} color="#4A5568" />
+          <Text style={styles.menuText}>Chính sách bảo mật</Text>
           <FontAwesome5 name="chevron-right" size={16} color="#A0AEC0" />
         </TouchableOpacity>
       </View>

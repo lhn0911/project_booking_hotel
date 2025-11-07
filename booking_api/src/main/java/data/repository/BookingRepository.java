@@ -1,14 +1,14 @@
 package data.repository;
 
-import data.entity.Bookings;
-import data.entity.User;
-import data.utils.BookingStatus;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
-import java.util.List;
+import data.entity.Bookings;
+import data.utils.BookingStatus;
 
 public interface BookingRepository extends JpaRepository<Bookings, Integer> {
     
@@ -21,6 +21,9 @@ public interface BookingRepository extends JpaRepository<Bookings, Integer> {
     
     @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut < :today")
     List<Bookings> findPastBookings(@Param("userId") Integer userId, @Param("today") LocalDate today);
+    
+    @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.status = 'CONFIRMED'")
+    List<Bookings> findConfirmedBookings(@Param("userId") Integer userId);
     
     @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut < :today AND b.status = :status")
     List<Bookings> findPastBookingsByStatus(@Param("userId") Integer userId, @Param("today") LocalDate today, @Param("status") BookingStatus status);

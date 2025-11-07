@@ -10,7 +10,7 @@ interface SearchBarProps {
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   onPress,
-  placeholder = 'Tìm kiếm khách sạn...',
+  placeholder = 'Tìm kiếm phòng...',
 }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.8}>

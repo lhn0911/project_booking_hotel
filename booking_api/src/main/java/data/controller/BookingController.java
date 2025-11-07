@@ -57,22 +57,33 @@ public class BookingController {
         }
     }
     
-    @GetMapping("/{bookingId}")
-    public ResponseEntity<APIResponse<BookingResponseDTO>> getBookingById(@PathVariable Integer bookingId) {
+    @PutMapping("/{bookingId}/cancel")
+    public ResponseEntity<APIResponse<BookingResponseDTO>> cancelBooking(@PathVariable Integer bookingId) {
         try {
-            BookingResponseDTO booking = bookingService.getBookingById(bookingId);
-            return ResponseEntity.ok(APIResponse.success(booking, "Lấy thông tin booking thành công"));
+            BookingResponseDTO booking = bookingService.cancelBooking(bookingId);
+            return ResponseEntity.ok(APIResponse.success(booking, "Hủy booking thành công"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(400)
                 .body(APIResponse.error(e.getMessage(), null));
         }
     }
     
-    @PutMapping("/{bookingId}/cancel")
-    public ResponseEntity<APIResponse<BookingResponseDTO>> cancelBooking(@PathVariable Integer bookingId) {
+    @PutMapping("/{bookingId}/confirm")
+    public ResponseEntity<APIResponse<BookingResponseDTO>> confirmBooking(@PathVariable Integer bookingId) {
         try {
-            BookingResponseDTO booking = bookingService.cancelBooking(bookingId);
-            return ResponseEntity.ok(APIResponse.success(booking, "Hủy booking thành công"));
+            BookingResponseDTO booking = bookingService.confirmBooking(bookingId);
+            return ResponseEntity.ok(APIResponse.success(booking, "Xác nhận booking thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400)
+                .body(APIResponse.error(e.getMessage(), null));
+        }
+    }
+    
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<APIResponse<BookingResponseDTO>> getBookingById(@PathVariable Integer bookingId) {
+        try {
+            BookingResponseDTO booking = bookingService.getBookingById(bookingId);
+            return ResponseEntity.ok(APIResponse.success(booking, "Lấy thông tin booking thành công"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(400)
                 .body(APIResponse.error(e.getMessage(), null));

@@ -7,20 +7,24 @@ import {
   StatusBar,
   TextInput,
   ImageBackground,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BOOKING_COLORS } from '@/constants/booking';
+import { createBooking, confirmBooking, BookingRequest } from '@/apis/bookingApi';
 
 export default function AddCardScreen(): React.JSX.Element {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const [cardNumber, setCardNumber] = useState<string>('8976 5467 XX87 0098');
-  const [cardHolderName, setCardHolderName] = useState<string>('Curtis Weaver');
-  const [expiryDate, setExpiryDate] = useState<string>('12/2026');
+  const [cardNumber, setCardNumber] = useState<string>('');
+  const [cardHolderName, setCardHolderName] = useState<string>('');
+  const [expiryDate, setExpiryDate] = useState<string>('');
   const [cvv, setCvv] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const formatCardNumber = (text: string) => {
     const cleaned = text.replace(/\s/g, '');
@@ -57,13 +61,65 @@ export default function AddCardScreen(): React.JSX.Element {
     }
   };
 
-  const handleAddCard = () => {
-    // In real app, validate and process card
-    // Pass booking params to payment done screen
-    router.push({
-      pathname: '/booking/payment-done',
-      params: params,
-    });
+  const validateCard = (): boolean => {
+    if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số thẻ hợp lệ (16 số)');
+      return false;
+    }
+    if (!cardHolderName || cardHolderName.trim().length < 3) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên chủ thẻ');
+      return false;
+    }
+    if (!expiryDate || expiryDate.length < 7) {
+      Alert.alert('Lỗi', 'Vui lòng nhập ngày hết hạn');
+      return false;
+    }
+    if (!cvv || cvv.length < 3) {
+      Alert.alert('Lỗi', 'Vui lòng nhập CVV');
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddCard = async () => {
+    if (!validateCard()) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Create booking
+      if (params.roomId && params.checkIn && params.checkOut) {
+        const bookingData: BookingRequest = {
+          roomId: parseInt(params.roomId as string),
+          checkIn: params.checkIn as string,
+          checkOut: params.checkOut as string,
+          adultsCount: parseInt(params.adults as string) || 2,
+          childrenCount: parseInt(params.children as string) || 0,
+          infantsCount: parseInt(params.infants as string) || 0,
+        };
+        const booking = await createBooking(bookingData);
+        
+        // Confirm booking after payment (card payment = confirmed)
+        if (booking.bookingId) {
+          await confirmBooking(booking.bookingId);
+        }
+      }
+
+      // Navigate to payment done
+      router.push({
+        pathname: '/booking/payment-done',
+        params: {
+          ...params,
+          paymentMethod: 'card',
+        },
+      });
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      Alert.alert('Lỗi', 'Không thể xử lý thanh toán. Vui lòng thử lại.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -75,12 +131,37 @@ export default function AddCardScreen(): React.JSX.Element {
         style={styles.backgroundImage}
         blurRadius={20}>
         <View style={styles.blurOverlay}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.BACKGROUND} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Thanh toán thẻ</Text>
+            <View style={styles.backButton} />
+          </View>
+
           <View style={styles.contentCard}>
-            <Text style={styles.title}>Add New Card</Text>
+            <Text style={styles.title}>Thông tin thẻ thanh toán</Text>
+
+            {/* Card Type Icons */}
+            <View style={styles.cardTypes}>
+              <View style={styles.cardTypeIcon}>
+                <Ionicons name="card" size={32} color="#1A1F71" />
+                <Text style={styles.cardTypeText}>Visa</Text>
+              </View>
+              <View style={styles.cardTypeIcon}>
+                <Ionicons name="card" size={32} color="#EB001B" />
+                <Text style={styles.cardTypeText}>Mastercard</Text>
+              </View>
+              <View style={styles.cardTypeIcon}>
+                <Ionicons name="card" size={32} color="#F7931E" />
+                <Text style={styles.cardTypeText}>JCB</Text>
+              </View>
+            </View>
 
             {/* Card Number */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Card Number</Text>
+              <Text style={styles.inputLabel}>Số thẻ</Text>
               <TextInput
                 style={styles.input}
                 value={cardNumber}
@@ -94,21 +175,21 @@ export default function AddCardScreen(): React.JSX.Element {
 
             {/* Card Holder Name */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Card Holder Name</Text>
+              <Text style={styles.inputLabel}>Tên chủ thẻ</Text>
               <TextInput
                 style={styles.input}
                 value={cardHolderName}
                 onChangeText={setCardHolderName}
-                placeholder="John Doe"
+                placeholder="NGUYEN VAN A"
                 placeholderTextColor={BOOKING_COLORS.TEXT_SECONDARY}
-                autoCapitalize="words"
+                autoCapitalize="characters"
               />
             </View>
 
             {/* Expiry Date and CVV */}
             <View style={styles.row}>
               <View style={[styles.inputContainer, styles.halfWidth]}>
-                <Text style={styles.inputLabel}>Expiry Date</Text>
+                <Text style={styles.inputLabel}>Ngày hết hạn</Text>
                 <TextInput
                   style={styles.input}
                   value={expiryDate}
@@ -135,8 +216,15 @@ export default function AddCardScreen(): React.JSX.Element {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.addButton} onPress={handleAddCard}>
-              <Text style={styles.addButtonText}>Add Card</Text>
+            <TouchableOpacity 
+              style={[styles.addButton, isProcessing && styles.addButtonDisabled]} 
+              onPress={handleAddCard}
+              disabled={isProcessing}>
+              {isProcessing ? (
+                <ActivityIndicator color={BOOKING_COLORS.BACKGROUND} />
+              ) : (
+                <Text style={styles.addButtonText}>Thanh toán</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -161,6 +249,25 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: BOOKING_COLORS.BACKGROUND,
+  },
   contentCard: {
     backgroundColor: BOOKING_COLORS.BACKGROUND,
     borderTopLeftRadius: 24,
@@ -172,7 +279,26 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 24,
+  },
+  cardTypes: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
     marginBottom: 32,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: BOOKING_COLORS.BORDER,
+  },
+  cardTypeIcon: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: BOOKING_COLORS.TEXT_SECONDARY,
   },
   inputContainer: {
     marginBottom: 20,
@@ -206,6 +332,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
+  },
+  addButtonDisabled: {
+    opacity: 0.6,
   },
   addButtonText: {
     fontSize: 16,

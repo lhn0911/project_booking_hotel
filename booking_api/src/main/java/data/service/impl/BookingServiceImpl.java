@@ -73,8 +73,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getPastBookings(Integer userId) {
-        LocalDate today = LocalDate.now();
-        List<Bookings> bookings = bookingRepository.findPastBookings(userId, today);
+        // Return all CONFIRMED bookings (regardless of checkOut date)
+        List<Bookings> bookings = bookingRepository.findConfirmedBookings(userId);
         return BookingMapper.toDTOList(bookings);
     }
     
@@ -98,6 +98,22 @@ public class BookingServiceImpl implements BookingService {
         }
         
         booking.setStatus(BookingStatus.CANCELLED);
+        booking = bookingRepository.save(booking);
+        return BookingMapper.toDTO(booking);
+    }
+    
+    @Override
+    @Transactional
+    public BookingResponseDTO confirmBooking(Integer bookingId) {
+        Bookings booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy booking với ID: " + bookingId));
+        
+        User currentUser = userService.getCurrentUser();
+        if (!booking.getUser().getUserId().equals(currentUser.getUserId())) {
+            throw new RuntimeException("Bạn không có quyền xác nhận booking này");
+        }
+        
+        booking.setStatus(BookingStatus.CONFIRMED);
         booking = bookingRepository.save(booking);
         return BookingMapper.toDTO(booking);
     }

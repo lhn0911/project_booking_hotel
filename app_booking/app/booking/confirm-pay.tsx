@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { BOOKING_COLORS } from '@/constants/booking';
 
 export default function ConfirmPayScreen(): React.JSX.Element {
@@ -18,17 +20,25 @@ export default function ConfirmPayScreen(): React.JSX.Element {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   
-  const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
-  const adults = parseInt(params.adults as string) || 2;
-  const children = parseInt(params.children as string) || 0;
-  const infants = parseInt(params.infants as string) || 0;
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'banking' | 'card'>('card');
+  
+  // Parse dates from params
+  const defaultCheckIn = params.checkIn ? new Date(params.checkIn as string) : new Date();
+  const defaultCheckOut = params.checkOut ? new Date(params.checkOut as string) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+  
+  const [adults, setAdults] = useState<number>(parseInt(params.adults as string) || 2);
+  const [children, setChildren] = useState<number>(parseInt(params.children as string) || 0);
+  const [infants, setInfants] = useState<number>(parseInt(params.infants as string) || 0);
+  const [checkIn, setCheckIn] = useState<Date>(defaultCheckIn);
+  const [checkOut, setCheckOut] = useState<Date>(defaultCheckOut);
+  const [showCheckInPicker, setShowCheckInPicker] = useState(false);
+  const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
+  const [showGuestPicker, setShowGuestPicker] = useState(false);
   
   // Get room price from params
   const roomPrice = parseFloat(params.roomPrice as string) || 0;
   
   // Calculate number of nights from checkIn and checkOut
-  const checkIn = params.checkIn ? new Date(params.checkIn as string) : new Date();
-  const checkOut = params.checkOut ? new Date(params.checkOut as string) : new Date();
   const nights = Math.max(1, Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
   
   // Calculate total price: room price * number of guests * number of nights
@@ -38,42 +48,59 @@ export default function ConfirmPayScreen(): React.JSX.Element {
   const taxes = Math.round(subtotal * 0.1); // 10% tax
   const total = subtotal - discount + taxes;
 
-  const handlePayNow = () => {
-    // Pass all booking params to add card screen
-    router.push({
-      pathname: '/booking/add-card',
-      params: {
-        ...params,
-        roomId: params.roomId || '',
-        checkIn: params.checkIn || '2023-05-06',
-        checkOut: params.checkOut || '2023-05-08',
-        totalPrice: total.toFixed(2),
-      },
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatDisplayDate = (date: Date): string => {
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
     });
   };
 
-  const renderRadioOption = (
-    label: string,
-    subtitle: string,
-    value: 'full' | 'partial',
-    selected: boolean,
-  ) => {
-    return (
-      <TouchableOpacity
-        style={styles.radioOption}
-        onPress={() => setPaymentType(value)}>
-        <View style={styles.radioButtonContainer}>
-          <View style={[styles.radioButton, selected && styles.radioButtonSelected]}>
-            {selected && <View style={styles.radioButtonInner} />}
-          </View>
-        </View>
-        <View style={styles.radioTextContainer}>
-          <Text style={styles.radioLabel}>{label}</Text>
-          <Text style={styles.radioSubtitle}>{subtitle}</Text>
-        </View>
-      </TouchableOpacity>
-    );
+  const handlePayNow = () => {
+    const bookingParams = {
+      ...params,
+      roomId: params.roomId || '',
+      checkIn: formatDate(checkIn),
+      checkOut: formatDate(checkOut),
+      totalPrice: total.toFixed(2),
+      adults: adults.toString(),
+      children: children.toString(),
+      infants: infants.toString(),
+    };
+
+    if (paymentMethod === 'cash') {
+      // Thanh toán tiền mặt - chuyển thẳng đến payment done
+      router.push({
+        pathname: '/booking/payment-done',
+        params: {
+          ...bookingParams,
+          paymentMethod: 'cash',
+        },
+      });
+    } else if (paymentMethod === 'banking') {
+      // Thanh toán banking - chuyển đến trang QR code
+      router.push({
+        pathname: '/booking/banking-payment',
+        params: {
+          ...bookingParams,
+          paymentMethod: 'banking',
+        },
+      });
+    } else if (paymentMethod === 'card') {
+      router.push({
+        pathname: '/booking/add-card',
+        params: {
+          ...bookingParams,
+          paymentMethod: 'card',
+        },
+      });
+    }
   };
+
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -84,7 +111,7 @@ export default function ConfirmPayScreen(): React.JSX.Element {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirm & Pay</Text>
+        <Text style={styles.headerTitle}>Xác nhận & Thanh toán</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -117,72 +144,198 @@ export default function ConfirmPayScreen(): React.JSX.Element {
 
         {/* Booking Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Booking Details</Text>
+          <Text style={styles.sectionTitle}>Chi tiết đặt phòng</Text>
           
           <View style={styles.detailRow}>
             <View style={styles.detailInfo}>
-              <Text style={styles.detailLabel}>Dates</Text>
-              <Text style={styles.detailValue}>May 06, 2023 - May 08, 2023</Text>
+              <Text style={styles.detailLabel}>Ngày nhận phòng</Text>
+              <Text style={styles.detailValue}>
+                {formatDisplayDate(checkIn)}
+              </Text>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowCheckInPicker(true)}>
               <Ionicons name="pencil" size={20} color={BOOKING_COLORS.PRIMARY} />
             </TouchableOpacity>
           </View>
+          <View style={styles.detailRow}>
+            <View style={styles.detailInfo}>
+              <Text style={styles.detailLabel}>Ngày trả phòng</Text>
+              <Text style={styles.detailValue}>
+                {formatDisplayDate(checkOut)}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowCheckOutPicker(true)}>
+              <Ionicons name="pencil" size={20} color={BOOKING_COLORS.PRIMARY} />
+            </TouchableOpacity>
+          </View>
+          {showCheckInPicker && (
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Chọn ngày nhận phòng</Text>
+              <DateTimePicker
+                value={checkIn}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={new Date()}
+                onChange={(event, selectedDate) => {
+                  setShowCheckInPicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    setCheckIn(selectedDate);
+                    if (checkOut <= selectedDate) {
+                      const newCheckOut = new Date(selectedDate);
+                      newCheckOut.setDate(newCheckOut.getDate() + 1);
+                      setCheckOut(newCheckOut);
+                    }
+                  }
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowCheckInPicker(false)}>
+                  <Text style={styles.pickerButtonText}>Xong</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {showCheckOutPicker && (
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Chọn ngày trả phòng</Text>
+              <DateTimePicker
+                value={checkOut}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={new Date(checkIn.getTime() + 24 * 60 * 60 * 1000)}
+                onChange={(event, selectedDate) => {
+                  setShowCheckOutPicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    setCheckOut(selectedDate);
+                  }
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowCheckOutPicker(false)}>
+                  <Text style={styles.pickerButtonText}>Xong</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           <View style={styles.detailRow}>
             <View style={styles.detailInfo}>
-              <Text style={styles.detailLabel}>Guests</Text>
+              <Text style={styles.detailLabel}>Số khách</Text>
               <Text style={styles.detailValue}>
-                {adults} adults | {children} {children === 1 ? 'child' : 'children'}
+                {adults} người lớn{children > 0 ? ` | ${children} trẻ em` : ''}{infants > 0 ? ` | ${infants} trẻ sơ sinh` : ''}
               </Text>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => {
+              router.push({
+                pathname: '/booking/select-guest',
+                params: {
+                  ...params,
+                  checkIn: formatDate(checkIn),
+                  checkOut: formatDate(checkOut),
+                  adults: adults.toString(),
+                  children: children.toString(),
+                  infants: infants.toString(),
+                },
+              });
+            }}>
               <Ionicons name="pencil" size={20} color={BOOKING_COLORS.PRIMARY} />
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Payment Type */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Choose how to pay</Text>
-          {renderRadioOption(
-            'Pay in full',
-            'Pay the total now and you\'re all set.',
-            'full',
-            paymentType === 'full',
-          )}
-          {renderRadioOption(
-            'Pay part now, part later',
-            'Pay part now and you\'re all set.',
-            'partial',
-            paymentType === 'partial',
-          )}
         </View>
 
         {/* Payment Method */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pay with</Text>
-          <View style={styles.paymentMethodRow}>
-            <View style={styles.paymentMethodInfo}>
-              <Text style={styles.detailLabel}>Payment method</Text>
-              <View style={styles.paymentIcons}>
-                <Ionicons name="card-outline" size={24} color={BOOKING_COLORS.TEXT_SECONDARY} />
-                <Ionicons name="wallet-outline" size={24} color={BOOKING_COLORS.TEXT_SECONDARY} />
-                <Ionicons name="logo-google" size={24} color={BOOKING_COLORS.TEXT_SECONDARY} />
+          <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+          
+          {/* Cash Payment */}
+          <TouchableOpacity
+            style={[styles.paymentMethodOption, paymentMethod === 'cash' && styles.paymentMethodOptionSelected]}
+            onPress={() => setPaymentMethod('cash')}>
+            <View style={styles.paymentMethodContent}>
+              <View style={styles.paymentMethodLeft}>
+                <View style={[styles.paymentMethodIcon, paymentMethod === 'cash' && styles.paymentMethodIconSelected]}>
+                  <Ionicons 
+                    name="cash-outline" 
+                    size={24} 
+                    color={paymentMethod === 'cash' ? BOOKING_COLORS.BACKGROUND : BOOKING_COLORS.TEXT_PRIMARY} 
+                  />
+                </View>
+                <View style={styles.paymentMethodText}>
+                  <Text style={[styles.paymentMethodLabel, paymentMethod === 'cash' && styles.paymentMethodLabelSelected]}>
+                    Thanh toán bằng tiền mặt
+                  </Text>
+                  <Text style={styles.paymentMethodSubtitle}>Thanh toán khi nhận phòng</Text>
+                </View>
+              </View>
+              <View style={[styles.radioButton, paymentMethod === 'cash' && styles.radioButtonSelected]}>
+                {paymentMethod === 'cash' && <View style={styles.radioButtonInner} />}
               </View>
             </View>
-            <TouchableOpacity>
-              <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
+
+          {/* Banking Payment */}
+          <TouchableOpacity
+            style={[styles.paymentMethodOption, paymentMethod === 'banking' && styles.paymentMethodOptionSelected]}
+            onPress={() => setPaymentMethod('banking')}>
+            <View style={styles.paymentMethodContent}>
+              <View style={styles.paymentMethodLeft}>
+                <View style={[styles.paymentMethodIcon, paymentMethod === 'banking' && styles.paymentMethodIconSelected]}>
+                  <Ionicons 
+                    name="phone-portrait-outline" 
+                    size={24} 
+                    color={paymentMethod === 'banking' ? BOOKING_COLORS.BACKGROUND : BOOKING_COLORS.TEXT_PRIMARY} 
+                  />
+                </View>
+                <View style={styles.paymentMethodText}>
+                  <Text style={[styles.paymentMethodLabel, paymentMethod === 'banking' && styles.paymentMethodLabelSelected]}>
+                    Thanh toán online (Banking)
+                  </Text>
+                  <Text style={styles.paymentMethodSubtitle}>Quét mã QR để thanh toán</Text>
+                </View>
+              </View>
+              <View style={[styles.radioButton, paymentMethod === 'banking' && styles.radioButtonSelected]}>
+                {paymentMethod === 'banking' && <View style={styles.radioButtonInner} />}
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Card Payment */}
+          <TouchableOpacity
+            style={[styles.paymentMethodOption, paymentMethod === 'card' && styles.paymentMethodOptionSelected]}
+            onPress={() => setPaymentMethod('card')}>
+            <View style={styles.paymentMethodContent}>
+              <View style={styles.paymentMethodLeft}>
+                <View style={[styles.paymentMethodIcon, paymentMethod === 'card' && styles.paymentMethodIconSelected]}>
+                  <Ionicons 
+                    name="card-outline" 
+                    size={24} 
+                    color={paymentMethod === 'card' ? BOOKING_COLORS.BACKGROUND : BOOKING_COLORS.TEXT_PRIMARY} 
+                  />
+                </View>
+                <View style={styles.paymentMethodText}>
+                  <Text style={[styles.paymentMethodLabel, paymentMethod === 'card' && styles.paymentMethodLabelSelected]}>
+                    Thanh toán qua thẻ
+                  </Text>
+                  <Text style={styles.paymentMethodSubtitle}>Visa, Mastercard, JCB</Text>
+                </View>
+              </View>
+              <View style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonSelected]}>
+                {paymentMethod === 'card' && <View style={styles.radioButtonInner} />}
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Price Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price Details</Text>
+          <Text style={styles.sectionTitle}>Chi tiết giá</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>${roomPrice.toFixed(2)} x {totalGuests} guests x {nights} nights</Text>
-            <Text style={styles.priceValue}>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.priceLabel}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(roomPrice)} x {totalGuests} khách x {nights} đêm</Text>
+            <Text style={styles.priceValue}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(subtotal)}</Text>
           </View>
           {discount > 0 && (
             <View style={styles.priceRow}>
@@ -191,12 +344,12 @@ export default function ConfirmPayScreen(): React.JSX.Element {
             </View>
           )}
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Occupancy taxes and fees</Text>
-            <Text style={styles.priceValue}>${taxes.toFixed(2)}</Text>
+            <Text style={styles.priceLabel}>Thuế và phí</Text>
+            <Text style={styles.priceValue}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(taxes)}</Text>
           </View>
           <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Grand Total</Text>
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+            <Text style={styles.totalLabel}>Tổng cộng</Text>
+            <Text style={styles.totalValue}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(total)}</Text>
           </View>
         </View>
       </ScrollView>
@@ -204,7 +357,7 @@ export default function ConfirmPayScreen(): React.JSX.Element {
       {/* Pay Now Button */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity style={styles.payButton} onPress={handlePayNow}>
-          <Text style={styles.payButtonText}>Pay Now</Text>
+          <Text style={styles.payButtonText}>Thanh toán ngay</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -313,13 +466,55 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: BOOKING_COLORS.TEXT_PRIMARY,
   },
-  radioOption: {
+  paymentMethodOption: {
+    borderWidth: 2,
+    borderColor: BOOKING_COLORS.BORDER,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: BOOKING_COLORS.BACKGROUND,
+  },
+  paymentMethodOptionSelected: {
+    borderColor: BOOKING_COLORS.PRIMARY,
+    backgroundColor: BOOKING_COLORS.PRIMARY + '10',
+  },
+  paymentMethodContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
   },
-  radioButtonContainer: {
+  paymentMethodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  paymentMethodIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: BOOKING_COLORS.CARD_BACKGROUND,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
+  },
+  paymentMethodIconSelected: {
+    backgroundColor: BOOKING_COLORS.PRIMARY,
+  },
+  paymentMethodText: {
+    flex: 1,
+  },
+  paymentMethodLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 4,
+  },
+  paymentMethodLabelSelected: {
+    color: BOOKING_COLORS.PRIMARY,
+  },
+  paymentMethodSubtitle: {
+    fontSize: 14,
+    color: BOOKING_COLORS.TEXT_SECONDARY,
   },
   radioButton: {
     width: 24,
@@ -338,37 +533,6 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: BOOKING_COLORS.PRIMARY,
-  },
-  radioTextContainer: {
-    flex: 1,
-  },
-  radioLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: BOOKING_COLORS.TEXT_PRIMARY,
-    marginBottom: 2,
-  },
-  radioSubtitle: {
-    fontSize: 14,
-    color: BOOKING_COLORS.TEXT_SECONDARY,
-  },
-  paymentMethodRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paymentMethodInfo: {
-    flex: 1,
-  },
-  paymentIcons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: BOOKING_COLORS.PRIMARY,
   },
   priceRow: {
     flexDirection: 'row',
@@ -402,6 +566,32 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: BOOKING_COLORS.PRIMARY,
+  },
+  pickerContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: BOOKING_COLORS.CARD_BACKGROUND,
+    borderRadius: 8,
+  },
+  pickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginBottom: 8,
+  },
+  pickerButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: BOOKING_COLORS.PRIMARY,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BOOKING_COLORS.BACKGROUND,
   },
   bottomBar: {
     paddingHorizontal: 16,
