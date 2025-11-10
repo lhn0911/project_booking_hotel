@@ -26,7 +26,6 @@ export default function PhotoGalleryScreen() {
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    // ✅ scale animation shared value (dùng chung)
     const scale = useSharedValue(1);
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],

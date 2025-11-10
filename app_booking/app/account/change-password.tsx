@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import axiosInstance from "../../utils/axiosInstance";
+import { getErrorMessage } from "../../utils/errorHandler";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function ChangePasswordScreen() {
         ]);
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || "Không thể đổi mật khẩu";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

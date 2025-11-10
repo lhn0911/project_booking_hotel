@@ -1,4 +1,5 @@
 import axiosInstance from '@/utils/axiosInstance';
+import { Alert } from 'react-native';
 
 export interface BookingRequest {
   roomId: number;
@@ -41,9 +42,14 @@ export const getUpcomingBookings = async (): Promise<BookingResponse[]> => {
   return response.data.data;
 };
 
-export const getPastBookings = async (): Promise<BookingResponse[]> => {
-  const response = await axiosInstance.get('bookings/past');
-  return response.data.data;
+export const getPastBookings = async () => {
+  try {
+    const response = await axiosInstance.get('bookings/past');
+    return response.data.data;
+  } catch (e) {
+    Alert.alert('')
+    console.log(`getPastBookings : ${e}`)
+  }
 };
 
 export const getBookingById = async (bookingId: number): Promise<BookingResponse> => {
@@ -65,4 +71,3 @@ export const getUserBookings = async (): Promise<BookingResponse[]> => {
   const response = await axiosInstance.get('bookings');
   return response.data.data;
 };
-

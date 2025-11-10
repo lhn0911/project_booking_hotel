@@ -1,4 +1,18 @@
 /**
+ * Gets user-friendly error message from any error object
+ * This is the main function to use for error handling
+ */
+export const getErrorMessage = (error: any): string => {
+  // First try to use userMessage from axios interceptor
+  if (error?.userMessage && typeof error.userMessage === 'string') {
+    return error.userMessage;
+  }
+
+  // Fall back to sanitizeErrorMessage for other cases
+  return sanitizeErrorMessage(error);
+};
+
+/**
  * Sanitizes error messages to make them user-friendly
  * Removes technical details like "AxiosError", "Request failed", etc.
  */
@@ -26,9 +40,9 @@ export const sanitizeErrorMessage = (error: any): string => {
 
   // Priority 4: Use server response message (only if not technical)
   // Check multiple possible locations for error message
-  const serverMessage = error?.response?.data?.errors?.message || 
-                        error?.response?.data?.message || 
-                        error?.response?.data?.error;
+  const serverMessage = error?.response?.data?.errors?.message ||
+    error?.response?.data?.message ||
+    error?.response?.data?.error;
   if (serverMessage && typeof serverMessage === 'string') {
     // Clean up server message if it contains technical details
     const cleaned = cleanMessage(serverMessage);
@@ -72,9 +86,9 @@ const cleanMessage = (message: string): string => {
     .trim();
 
   // Remove any remaining technical patterns
-  if (cleaned.toLowerCase().includes('axioserror') || 
-      cleaned.toLowerCase().includes('request failed') ||
-      cleaned.match(/status code \d+/i)) {
+  if (cleaned.toLowerCase().includes('axioserror') ||
+    cleaned.toLowerCase().includes('request failed') ||
+    cleaned.match(/status code \d+/i)) {
     return '';
   }
 
@@ -113,12 +127,12 @@ const isTechnicalMessage = (message: string): boolean => {
   ];
 
   const lowerMessage = message.toLowerCase().trim();
-  
+
   // Check if message starts with technical terms
   if (technicalTerms.some((term) => lowerMessage.startsWith(term))) {
     return true;
   }
-  
+
   // Check if message contains technical patterns
   if (technicalTerms.some((term) => lowerMessage.includes(term))) {
     return true;
@@ -146,16 +160,6 @@ const getFriendlyErrorMessage = (status: number): string => {
       return 'Thông tin không hợp lệ. Vui lòng kiểm tra lại.';
     case 401:
       return 'Tên đăng nhập hoặc mật khẩu không đúng.';
-    case 403:
-      return 'Bạn không có quyền truy cập.';
-    case 404:
-      return 'Không tìm thấy tài nguyên.';
-    case 422:
-      return 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';
-    case 500:
-      return 'Lỗi máy chủ. Vui lòng thử lại sau.';
-    case 503:
-      return 'Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.';
     default:
       return 'Đã xảy ra lỗi. Vui lòng thử lại.';
   }
@@ -165,14 +169,41 @@ const getFriendlyErrorMessage = (status: number): string => {
  * Gets generic error message based on error type
  */
 const getGenericErrorMessage = (error: any): string => {
-  // Check if it's a network error
-  if (error?.request && !error?.response) {
-    return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối internet.';
+  // Check for network errors (no internet connection)
+  if (!error?.response && error?.request) {
+    // Check for specific network error codes
+    if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error') || error?.message?.includes('network request failed')) {
+      return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+    }
+    if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
+      return 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
+    }
+    if (error?.code === 'ENOTFOUND' || error?.message?.includes('ENOTFOUND')) {
+      return 'Không tìm thấy máy chủ. Vui lòng kiểm tra kết nối internet.';
+    }
+    if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout') || error?.message?.includes('ETIMEDOUT')) {
+      return 'Kết nối quá lâu. Vui lòng thử lại.';
+    }
+    // Generic network error
+    return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
   }
 
-  // Check if it's a timeout
+  // Check if error is AxiosError with network issues
+  if (error?.isAxiosError) {
+    if (!error?.response && error?.request) {
+      return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+    }
+  }
+
+  // Check for timeout errors
   if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
     return 'Kết nối quá lâu. Vui lòng thử lại.';
+  }
+
+  // Check if error message contains network-related keywords
+  const errorMessage = error?.message?.toLowerCase() || '';
+  if (errorMessage.includes('network') || errorMessage.includes('internet') || errorMessage.includes('connection')) {
+    return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
   }
 
   // Generic message

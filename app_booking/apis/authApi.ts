@@ -1,6 +1,5 @@
 import axiosInstance from "@/utils/axiosInstance";
 
-// Register user (without password)
 export const register = async (data: {
     fullName: string;
     email: string;
@@ -25,7 +24,9 @@ export const login = async (email: string, password: string): Promise<any> => {
         });
         return response.data;
     } catch (error: any) {
+        console.log(error)
         throw error;
+
     }
 };
 

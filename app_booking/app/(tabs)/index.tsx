@@ -109,16 +109,23 @@ export default function HomeScreen(): React.JSX.Element {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.headerIcon}>
-          <Ionicons name="grid-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Live Green</Text>
-        <TouchableOpacity
-          style={styles.headerIcon}
-          onPress={() => router.push('/(tabs)/account')}
-        >
-          <Ionicons name="person-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Ionicons name="grid-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Live Green</Text>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={() => router.push('/(tabs)/account')}
+          >
+            <Ionicons name="person-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Search Bar inside header */}
+        <View style={styles.searchBarContainer}>
+          <SearchBar onPress={() => router.push('/search')} variant="header" />
+        </View>
       </View>
 
       <ScrollView
@@ -126,8 +133,6 @@ export default function HomeScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
-        {/* Search Bar */}
-        <SearchBar onPress={() => router.push('/search')} />
 
         {/* Hotel Categories */}
         {cities.length > 0 && (
@@ -220,11 +225,6 @@ export default function HomeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BOOKING_COLORS.BACKGROUND },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
     backgroundColor: BOOKING_COLORS.PRIMARY,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -233,6 +233,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
   headerIcon: {
     width: 44,
@@ -247,6 +255,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BOOKING_COLORS.BACKGROUND,
     letterSpacing: 0.5,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 0,
   },
   scrollView: { flex: 1 },
   citiesSection: { marginTop: 8, marginBottom: 32 },

@@ -166,7 +166,6 @@ export default function FilterRoomScreen(): React.JSX.Element {
   };
 
   const sortOptions = [
-    { id: "popularity", label: "Phổ biến", icon: "grid-outline" },
     { id: "price-low", label: "Giá: thấp đến cao", icon: "arrow-up-outline" },
     { id: "price-high", label: "Giá: cao đến thấp", icon: "arrow-down-outline" },
   ];

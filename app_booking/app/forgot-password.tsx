@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState, useRef } from "react";
-import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import axiosInstance from "../utils/axiosInstance";
+import { getErrorMessage } from "../utils/errorHandler";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -80,7 +82,7 @@ export default function ForgotPasswordScreen() {
         Alert.alert("Thành công", "OTP đã được gửi đến số điện thoại của bạn");
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || "Không thể gửi OTP";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
@@ -106,7 +108,7 @@ export default function ForgotPasswordScreen() {
         setStep("password");
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || "OTP không đúng";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
@@ -146,7 +148,7 @@ export default function ForgotPasswordScreen() {
         ]);
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || "Không thể đặt lại mật khẩu";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

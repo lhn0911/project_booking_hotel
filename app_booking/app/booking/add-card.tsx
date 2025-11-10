@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BOOKING_COLORS } from '@/constants/booking';
 import { createBooking, confirmBooking, BookingRequest } from '@/apis/bookingApi';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export default function AddCardScreen(): React.JSX.Element {
   const router = useRouter();
@@ -114,9 +115,10 @@ export default function AddCardScreen(): React.JSX.Element {
           paymentMethod: 'card',
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing payment:', error);
-      Alert.alert('Lỗi', 'Không thể xử lý thanh toán. Vui lòng thử lại.');
+      const errorMessage = getErrorMessage(error);
+      Alert.alert('Lỗi', errorMessage);
     } finally {
       setIsProcessing(false);
     }

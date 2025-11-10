@@ -17,6 +17,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import axiosInstance from "../../utils/axiosInstance";
+import { getErrorMessage } from "../../utils/errorHandler";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -56,7 +57,8 @@ export default function EditProfileScreen() {
       }
     } catch (e: any) {
       console.log("Load profile error:", e?.response?.data);
-      Alert.alert("Lỗi", "Không thể tải thông tin profile");
+      const errorMessage = getErrorMessage(e);
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoadingProfile(false);
     }
@@ -143,7 +145,7 @@ export default function EditProfileScreen() {
           Alert.alert("Thông báo", "OTP đã được gửi đến số điện thoại mới. Vui lòng nhập OTP để xác thực.");
         }
       } catch (e: any) {
-        const errorMessage = e?.response?.data?.message || "Không thể cập nhật thông tin";
+        const errorMessage = getErrorMessage(e);
         if (errorMessage.includes("OTP")) {
           setNeedsOtp(true);
           Alert.alert("Thông báo", errorMessage);
@@ -181,7 +183,7 @@ export default function EditProfileScreen() {
         ]);
       }
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || "Không thể cập nhật thông tin";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

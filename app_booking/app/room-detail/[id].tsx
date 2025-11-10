@@ -56,8 +56,9 @@ export default function RoomDetailScreen(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    loadRoomDetail();
-  }, [id]);
+    loadRoomDetail()
+
+  }, [])
 
   const loadRoomDetail = async () => {
     try {
@@ -70,7 +71,7 @@ export default function RoomDetailScreen(): React.JSX.Element {
       }
       const data = await getRoomById(roomId);
       setRoom(data);
-      
+
       // Load reviews for this room
       try {
         const reviewsData = await getReviewsByRoomId(roomId);
@@ -110,6 +111,23 @@ export default function RoomDetailScreen(): React.JSX.Element {
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.BACKGROUND} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => {
+              router.push({
+                pathname: '/booking/write-review',
+                params: {
+                  roomId: id || '',
+                  hotelName: room.hotelName || '',
+                },
+              });
+            }}
+            style={[styles.headerButton, styles.headerButtonTransparent]}>
+            <Ionicons
+              name="create-outline"
+              size={24}
+              color={BOOKING_COLORS.BACKGROUND}
+            />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setIsFavorite(!isFavorite)}
             style={[styles.headerButton, styles.headerButtonTransparent]}>
@@ -243,7 +261,7 @@ export default function RoomDetailScreen(): React.JSX.Element {
           {/* Amenities */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Tiện ích</Text>
-            
+
             {/* General Amenities */}
             <View style={styles.amenitiesGroup}>
               <Text style={styles.amenitiesGroupTitle}>Tiện nghi chung</Text>

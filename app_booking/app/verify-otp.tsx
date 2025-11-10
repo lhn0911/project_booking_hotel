@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Button from "../components/Button";
 import axiosInstance from "../utils/axiosInstance";
+import { getErrorMessage } from "../utils/errorHandler";
 
 export default function VerifyOTPScreen() {
   const router = useRouter();
@@ -118,8 +119,7 @@ export default function VerifyOTPScreen() {
       }
     } catch (e: any) {
       console.log("Verify OTP error:", e?.response?.data);
-      const errorMessage =
-        e?.response?.data?.message || e?.response?.data?.errors || "Mã OTP không đúng. Vui lòng thử lại.";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Xác thực thất bại", errorMessage);
     } finally {
       setLoading(false);
@@ -154,8 +154,7 @@ export default function VerifyOTPScreen() {
         Alert.alert("Lỗi", res?.data?.message || "Không thể gửi lại mã OTP");
       }
     } catch (e: any) {
-      const errorMessage =
-        e?.response?.data?.message || e?.response?.data?.errors || "Không thể gửi lại mã OTP";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setResendLoading(false);

@@ -15,6 +15,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import axiosInstance from "../utils/axiosInstance";
+import { getErrorMessage } from "../utils/errorHandler";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -114,10 +115,7 @@ export default function RegisterScreen() {
         Alert.alert("Lỗi", res?.data?.message || "Không thể đăng ký");
       }
     } catch (e: any) {
-      const errorMessage =
-        e?.response?.data?.message ||
-        e?.response?.data?.errors ||
-        "Đã xảy ra lỗi khi đăng ký";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Đăng ký thất bại", errorMessage);
     } finally {
       setLoading(false);

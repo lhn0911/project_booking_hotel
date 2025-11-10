@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { BOOKING_COLORS } from '@/constants/booking';
 import { createBooking, confirmBooking, BookingRequest } from '@/apis/bookingApi';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export default function BankingPaymentScreen(): React.JSX.Element {
   const router = useRouter();
@@ -73,7 +74,8 @@ export default function BankingPaymentScreen(): React.JSX.Element {
           } catch (confirmError: any) {
             console.error('Error confirming booking:', confirmError);
             // Don't fail the whole payment if confirm fails, but log it
-            Alert.alert('Cảnh báo', 'Đặt phòng đã được tạo nhưng có lỗi khi xác nhận. Vui lòng liên hệ hỗ trợ.');
+            const errorMessage = getErrorMessage(confirmError);
+            Alert.alert('Cảnh báo', `Đặt phòng đã được tạo nhưng có lỗi khi xác nhận: ${errorMessage}. Vui lòng liên hệ hỗ trợ.`);
           }
         }
       }
@@ -95,7 +97,7 @@ export default function BankingPaymentScreen(): React.JSX.Element {
       console.error('Error processing payment:', error);
       setPaymentStatus('failed');
       setIsProcessing(false);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Không thể xử lý thanh toán. Vui lòng thử lại.';
+      const errorMessage = getErrorMessage(error);
       Alert.alert('Lỗi', errorMessage);
     }
   };

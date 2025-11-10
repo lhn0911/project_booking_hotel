@@ -9,6 +9,7 @@ import * as WebBrowser from "expo-web-browser";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import axiosInstance from "../utils/axiosInstance";
+import { getErrorMessage } from "../utils/errorHandler";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,9 +69,7 @@ export default function LoginScreen() {
       }
     } catch (e: any) {
       console.log("Google Sign-In error:", e?.response?.data);
-      const errorMessage = e?.response?.data?.message || 
-                          e?.response?.status === 404 ? "Tính năng đăng nhập Google chưa được kích hoạt. Vui lòng sử dụng email/password." :
-                          "Không thể đăng nhập bằng Google. Vui lòng thử lại.";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setGoogleLoading(false);
@@ -132,8 +131,7 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (e: any) {
       console.log("Login error:", e?.response?.data);
-      const errorMessage =
-        e?.response?.data?.message || e?.response?.data?.errors || "Sai thông tin đăng nhập";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Đăng nhập thất bại", errorMessage);
     } finally {
       setLoading(false);

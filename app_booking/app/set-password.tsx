@@ -12,6 +12,7 @@ import {
 import Button from "../components/Button";
 import Input from "../components/Input";
 import axiosInstance from "../utils/axiosInstance";
+import { getErrorMessage } from "../utils/errorHandler";
 
 export default function SetPasswordScreen() {
   const router = useRouter();
@@ -71,8 +72,7 @@ export default function SetPasswordScreen() {
       }
     } catch (e: any) {
       console.log("Set password error:", e?.response?.data);
-      const errorMessage =
-        e?.response?.data?.message || e?.response?.data?.errors || "Đã xảy ra lỗi khi đặt mật khẩu";
+      const errorMessage = getErrorMessage(e);
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);

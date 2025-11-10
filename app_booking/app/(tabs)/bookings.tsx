@@ -13,8 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { BOOKING_COLORS } from '@/constants/booking';
 import { getUpcomingBookings, getPastBookings, cancelBooking, BookingResponse } from '@/apis/bookingApi';
 import { useRouter } from 'expo-router';
@@ -25,6 +24,7 @@ export default function BookingsScreen(): React.JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
+  const [loading, setLoading] = useState<boolean>(true);
 
   const { data: upcomingBookings, isLoading: loadingUpcoming, refetch: refetchUpcoming } = useQuery({
     queryKey: ['upcomingBookings'],
@@ -38,39 +38,26 @@ export default function BookingsScreen(): React.JSX.Element {
     enabled: activeTab === 'past',
   });
 
-  // Refetch bookings when screen is focused
-  useFocusEffect(
-    React.useCallback(() => {
-      if (activeTab === 'upcoming') {
-        refetchUpcoming();
-      } else {
-        refetchPast();
-      }
-    }, [activeTab, refetchUpcoming, refetchPast])
-  );
 
-  const handleCancelBooking = async (bookingId: number) => {
-    Alert.alert(
-      'Hủy đặt phòng',
-      'Bạn có chắc chắn muốn hủy đặt phòng này?',
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Hủy đặt phòng',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelBooking(bookingId);
-              refetchUpcoming();
-              Alert.alert('Thành công', 'Đã hủy đặt phòng thành công');
-            } catch (error: any) {
-              Alert.alert('Lỗi', error.response?.data?.message || 'Không thể hủy đặt phòng');
-            }
-          },
-        },
-      ]
-    );
-  };
+  useEffect(() => {
+    if (activeTab == "upcoming") {
+      refetchUpcoming();
+    }
+    else {
+      refetchPast();
+    }
+  }, [])
+  const cancelBookingMutation = useMutation({
+    mutationFn: cancelBooking,
+    onSuccess: () => {
+      refetchUpcoming();
+      Alert.alert('Thành công', 'Đã hủy đặt phòng thành công');
+    },
+    onError: (error: any) => {
+      Alert.alert('Lỗi', error.message || 'Không thể hủy đặt phòng');
+    },
+  });
+
 
   const handleViewDetails = (booking: BookingResponse) => {
     router.push({
@@ -107,7 +94,7 @@ export default function BookingsScreen(): React.JSX.Element {
 
   const renderBookingCard = (booking: BookingResponse) => {
     const isUpcoming = activeTab === 'upcoming';
-    
+
     return (
       <View key={booking.bookingId} style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
@@ -152,7 +139,7 @@ export default function BookingsScreen(): React.JSX.Element {
             <>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => handleCancelBooking(booking.bookingId)}>
+                onPress={() => cancelBooking(booking.bookingId)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -184,11 +171,10 @@ export default function BookingsScreen(): React.JSX.Element {
     const isLoading = activeTab === 'upcoming' ? loadingUpcoming : loadingPast;
     let bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
 
-    // Filter bookings based on payment status
     // Upcoming: PENDING (chưa thanh toán)
     // Past: CONFIRMED (đã thanh toán) - bất kể checkOut date
     if (bookings) {
-      bookings = bookings.filter((booking) => {
+      bookings = bookings.filter((booking: any) => {
         if (activeTab === 'upcoming') {
           // Upcoming: chỉ hiển thị PENDING (chưa thanh toán)
           return booking.status === 'PENDING';
