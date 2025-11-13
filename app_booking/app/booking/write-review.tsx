@@ -126,7 +126,7 @@ export default function WriteReviewScreen(): React.JSX.Element {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Write a Review</Text>
+        <Text style={styles.headerTitle}>Viết đánh giá</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -152,14 +152,14 @@ export default function WriteReviewScreen(): React.JSX.Element {
 
           {/* Rating Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Rating</Text>
+            <Text style={styles.sectionTitle}>Đánh giá của bạn</Text>
             {renderStars()}
-            <Text style={styles.ratingText}>{rating} out of 5 stars</Text>
+            <Text style={styles.ratingText}>{rating} trên 5 sao</Text>
           </View>
 
           {/* Comment Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Review</Text>
+            <Text style={styles.sectionTitle}>Nội dung đánh giá</Text>
             <TextInput
               style={styles.commentInput}
               placeholder="Hãy chia sẻ trải nghiệm của bạn về phòng này..."
@@ -170,7 +170,7 @@ export default function WriteReviewScreen(): React.JSX.Element {
               numberOfLines={8}
               textAlignVertical="top"
             />
-            <Text style={styles.charCount}>{comment.length} characters</Text>
+            <Text style={styles.charCount}>{comment.length} ký tự</Text>
           </View>
 
           {/* Submit Button */}

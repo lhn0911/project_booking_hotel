@@ -13,11 +13,9 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     List<Review> findByUser_UserId(Integer userId);
     
     List<Review> findByRoom_RoomIdOrderByCreatedAtDesc(Integer roomId);
-    
+
     boolean existsByUser_UserIdAndRoom_RoomId(Integer userId, Integer roomId);
-    
-    Review findByReviewId(Integer reviewId);
-    
+
     Review findByUser_UserIdAndRoom_RoomId(Integer userId, Integer roomId);
 }
 

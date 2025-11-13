@@ -110,34 +110,15 @@ export default function RoomDetailScreen(): React.JSX.Element {
           style={[styles.headerButton, styles.headerButtonTransparent]}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.BACKGROUND} />
         </TouchableOpacity>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={() => {
-              router.push({
-                pathname: '/booking/write-review',
-                params: {
-                  roomId: id || '',
-                  hotelName: room.hotelName || '',
-                },
-              });
-            }}
-            style={[styles.headerButton, styles.headerButtonTransparent]}>
-            <Ionicons
-              name="create-outline"
-              size={24}
-              color={BOOKING_COLORS.BACKGROUND}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setIsFavorite(!isFavorite)}
-            style={[styles.headerButton, styles.headerButtonTransparent]}>
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? BOOKING_COLORS.HEART : BOOKING_COLORS.BACKGROUND}
-            />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => setIsFavorite(!isFavorite)}
+          style={[styles.headerButton, styles.headerButtonTransparent]}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isFavorite ? BOOKING_COLORS.HEART : BOOKING_COLORS.BACKGROUND}
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -193,7 +174,7 @@ export default function RoomDetailScreen(): React.JSX.Element {
                 />
               ))}
               <Text style={styles.ratingText}>
-                {room.rating.toFixed(1)} ({room.reviewCount || 0} Reviews)
+                {room.rating.toFixed(1)} ({room.reviewCount || 0} đánh giá)
               </Text>
             </View>
           )}
@@ -290,45 +271,71 @@ export default function RoomDetailScreen(): React.JSX.Element {
           </View>
 
           {/* Reviews Section */}
-          {reviews.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Đánh giá ({reviews.length})</Text>
-              {reviews.slice(0, 5).map((review) => (
-                <View key={review.reviewId} style={styles.reviewItem}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewUserInfo}>
-                      <Text style={styles.reviewUserName}>{review.userName}</Text>
-                      <View style={styles.reviewRating}>
-                        {[...Array(5)].map((_, i) => (
-                          <Ionicons
-                            key={i}
-                            name={i < review.rating ? 'star' : 'star-outline'}
-                            size={12}
-                            color={BOOKING_COLORS.RATING}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                    <Text style={styles.reviewDate}>
-                      {new Date(review.createdAt).toLocaleDateString('vi-VN')}
-                    </Text>
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                </View>
-              ))}
-              {reviews.length > 5 && (
-                <TouchableOpacity
-                  style={styles.viewAllReviews}
-                  onPress={() => {
-                    // Navigate to reviews screen if needed
-                  }}>
-                  <Text style={styles.viewAllReviewsText}>
-                    Xem tất cả {reviews.length} đánh giá
-                  </Text>
-                </TouchableOpacity>
-              )}
+          <View style={styles.section}>
+            <View style={styles.reviewsHeader}>
+              <Text style={styles.sectionTitle}>
+                Đánh giá {reviews.length > 0 && `(${reviews.length})`}
+              </Text>
+              <TouchableOpacity
+                style={styles.writeReviewButton}
+                onPress={() => {
+                  router.push({
+                    pathname: '/booking/write-review',
+                    params: {
+                      roomId: id || '',
+                      hotelName: room.hotelName || '',
+                    },
+                  });
+                }}>
+                <Ionicons name="create-outline" size={20} color={BOOKING_COLORS.PRIMARY} />
+                <Text style={styles.writeReviewButtonText}>Viết đánh giá</Text>
+              </TouchableOpacity>
             </View>
-          )}
+            {reviews.length > 0 ? (
+              <>
+                {reviews.slice(0, 5).map((review) => (
+                  <View key={review.reviewId} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewUserInfo}>
+                        <Text style={styles.reviewUserName}>{review.userName}</Text>
+                        <View style={styles.reviewRating}>
+                          {[...Array(5)].map((_, i) => (
+                            <Ionicons
+                              key={i}
+                              name={i < review.rating ? 'star' : 'star-outline'}
+                              size={12}
+                              color={BOOKING_COLORS.RATING}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      <Text style={styles.reviewDate}>
+                        {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                      </Text>
+                    </View>
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                  </View>
+                ))}
+                {reviews.length > 5 && (
+                  <TouchableOpacity
+                    style={styles.viewAllReviews}
+                    onPress={() => {
+                      // Navigate to reviews screen if needed
+                    }}>
+                    <Text style={styles.viewAllReviewsText}>
+                      Xem tất cả {reviews.length} đánh giá
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <View style={styles.noReviewsContainer}>
+                <Ionicons name="chatbubble-outline" size={48} color={BOOKING_COLORS.TEXT_SECONDARY} />
+                <Text style={styles.noReviewsText}>Chưa có đánh giá nào</Text>
+                <Text style={styles.noReviewsSubtext}>Hãy là người đầu tiên đánh giá phòng này</Text>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -376,7 +383,6 @@ const styles = StyleSheet.create({
   },
   headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerButtonTransparent: { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderRadius: 20 },
-  headerRight: { flexDirection: 'row', gap: 8 },
   scrollView: { flex: 1 },
   imageContainer: { height: 300, position: 'relative' },
   mainImage: { width: '100%', height: '100%' },
@@ -477,6 +483,28 @@ const styles = StyleSheet.create({
     color: BOOKING_COLORS.TEXT_SECONDARY,
     marginLeft: 4,
   },
+  reviewsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  writeReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: BOOKING_COLORS.PRIMARY + '15',
+    borderWidth: 1,
+    borderColor: BOOKING_COLORS.PRIMARY + '30',
+  },
+  writeReviewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BOOKING_COLORS.PRIMARY,
+  },
   reviewItem: {
     paddingVertical: 16,
     borderBottomWidth: 1,
@@ -518,6 +546,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: BOOKING_COLORS.PRIMARY,
+  },
+  noReviewsContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noReviewsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: BOOKING_COLORS.TEXT_PRIMARY,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: BOOKING_COLORS.TEXT_SECONDARY,
+    textAlign: 'center',
   },
   bottomBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

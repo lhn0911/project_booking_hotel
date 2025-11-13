@@ -51,7 +51,7 @@ export default function EditProfileScreen() {
           email: data.email || "",
           phoneNumber: data.phoneNumber || "",
           dateOfBirth: dob,
-          gender: data.gender || "Male",
+          gender: data.gender === "Female" ? "Female" : "Male",
         });
         setOriginalPhoneNumber(data.phoneNumber || "");
       }
@@ -75,10 +75,10 @@ export default function EditProfileScreen() {
 
   const formatDate = (date: Date) => {
     const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+      "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
     ];
-    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    return `Ngày ${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
   };
 
   const formatPhoneNumber = (text: string) => {

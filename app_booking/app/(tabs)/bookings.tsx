@@ -46,7 +46,20 @@ export default function BookingsScreen(): React.JSX.Element {
     else {
       refetchPast();
     }
-  }, [])
+  }, []);
+
+  // Debug: Log booking data to check date format
+  useEffect(() => {
+    if (activeTab === 'upcoming' && upcomingBookings && upcomingBookings.length > 0) {
+      console.log('Sample upcoming booking:', JSON.stringify(upcomingBookings[0], null, 2));
+      console.log('checkIn:', upcomingBookings[0].checkIn, 'type:', typeof upcomingBookings[0].checkIn);
+      console.log('checkOut:', upcomingBookings[0].checkOut, 'type:', typeof upcomingBookings[0].checkOut);
+      console.log('createdAt:', upcomingBookings[0].createdAt, 'type:', typeof upcomingBookings[0].createdAt);
+    }
+    if (activeTab === 'past' && pastBookings && pastBookings.length > 0) {
+      console.log('Sample past booking:', JSON.stringify(pastBookings[0], null, 2));
+    }
+  }, [upcomingBookings, pastBookings, activeTab]);
   const cancelBookingMutation = useMutation({
     mutationFn: cancelBooking,
     onSuccess: () => {
@@ -83,13 +96,147 @@ export default function BookingsScreen(): React.JSX.Element {
     });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
+  const handleCancelBooking = (booking: BookingResponse) => {
+    Alert.alert(
+      'Xác nhận hủy đặt phòng',
+      'Bạn có chắc chắn muốn hủy đặt phòng này không? Hành động này không thể hoàn tác.',
+      [
+        {
+          text: 'Không',
+          style: 'cancel',
+        },
+        {
+          text: 'Hủy đặt phòng',
+          style: 'destructive',
+          onPress: () => {
+            cancelBookingMutation.mutate(booking.bookingId);
+          },
+        },
+      ]
+    );
+  };
+
+  const formatDate = (dateValue: string | null | undefined | any) => {
+    // Handle null, undefined, or empty values
+    if (dateValue === null || dateValue === undefined || dateValue === '') {
+      return 'Chưa có ngày';
+    }
+    
+    try {
+      // Handle if it's already a Date object
+      if (dateValue instanceof Date) {
+        if (isNaN(dateValue.getTime())) {
+          return 'Ngày không hợp lệ';
+        }
+        return dateValue.toLocaleDateString('vi-VN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        });
+      }
+      
+      // Handle array format [2025, 11, 10] - Jackson sometimes serializes LocalDate as array
+      if (Array.isArray(dateValue)) {
+        if (dateValue.length >= 3) {
+          const year = parseInt(dateValue[0], 10);
+          const month = parseInt(dateValue[1], 10) - 1; // JavaScript months are 0-indexed
+          const day = parseInt(dateValue[2], 10);
+          const date = new Date(year, month, day);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            });
+          }
+        }
+        return 'Ngày không hợp lệ';
+      }
+      
+      // Convert to string
+      let dateStr: string;
+      if (typeof dateValue === 'string') {
+        dateStr = dateValue.trim();
+      } else {
+        dateStr = String(dateValue).trim();
+      }
+      
+      // Handle string that looks like array: "[2025, 11, 10]"
+      if (dateStr.startsWith('[') && dateStr.endsWith(']')) {
+        try {
+          const dateArray = JSON.parse(dateStr);
+          if (Array.isArray(dateArray) && dateArray.length >= 3) {
+            const year = parseInt(dateArray[0], 10);
+            const month = parseInt(dateArray[1], 10) - 1;
+            const day = parseInt(dateArray[2], 10);
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              return date.toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              });
+            }
+          }
+        } catch (e) {
+          // Continue with normal parsing
+        }
+      }
+      
+      // Remove milliseconds and timezone if present
+      if (dateStr.includes('.')) {
+        dateStr = dateStr.split('.')[0];
+      }
+      if (dateStr.includes('+')) {
+        dateStr = dateStr.split('+')[0];
+      }
+      if (dateStr.includes('Z') && !dateStr.includes('T')) {
+        dateStr = dateStr.replace('Z', '');
+      }
+      
+      let date: Date;
+      
+      if (dateStr.includes('T')) {
+        // LocalDateTime format: "2025-11-10T02:47:45"
+        date = new Date(dateStr);
+      } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // LocalDate format: "2025-11-10" - parse as local date
+        const parts = dateStr.split('-');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(parts[2], 10);
+        date = new Date(year, month, day);
+      } else if (dateStr.match(/^\d{4}\/\d{2}\/\d{2}/)) {
+        // Alternative format: "2025/11/10"
+        const parts = dateStr.split('/');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        date = new Date(year, month, day);
+      } else {
+        // Try to parse as-is
+        date = new Date(dateStr);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date format:', dateValue, 'type:', typeof dateValue);
+        return 'Ngày không hợp lệ';
+      }
+      
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', dateValue, 'type:', typeof dateValue, error);
+      return 'Ngày không hợp lệ';
+    }
+  };
+
+  const formatCreatedDate = (dateString: string | null | undefined) => {
+    return formatDate(dateString);
   };
 
   const renderBookingCard = (booking: BookingResponse) => {
@@ -98,9 +245,11 @@ export default function BookingsScreen(): React.JSX.Element {
     return (
       <View key={booking.bookingId} style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
-          <Text style={styles.bookingId}>Booking ID: {booking.bookingId}</Text>
           <Text style={styles.bookingDate}>
-            {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+            Ngày đặt: {formatCreatedDate(booking.createdAt)}
+          </Text>
+          <Text style={styles.bookingCheckInOut}>
+            Nhận: {formatDate(booking.checkIn)} - Trả: {formatDate(booking.checkOut)}
           </Text>
         </View>
 
@@ -123,7 +272,7 @@ export default function BookingsScreen(): React.JSX.Element {
                 />
               ))}
               <Text style={styles.ratingText}>
-                {booking.rating?.toFixed(1) || '0.0'} ({booking.reviewCount || 0} Reviews)
+                {booking.rating?.toFixed(1) || '0.0'} ({booking.reviewCount || 0} Đánh giá)
               </Text>
             </View>
             <Text style={styles.hotelName}>{booking.hotelName}</Text>
@@ -137,28 +286,32 @@ export default function BookingsScreen(): React.JSX.Element {
         <View style={styles.bookingActions}>
           {isUpcoming ? (
             <>
+              {booking.status === 'PENDING' && (
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => handleCancelBooking(booking)}>
+                  <Text style={styles.cancelButtonText}>Hủy</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => cancelBooking(booking.bookingId)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.viewButton}
+                style={[styles.viewButton, booking.status === 'PENDING' ? {} : { flex: 1 }]}
                 onPress={() => handleViewDetails(booking)}>
-                <Text style={styles.viewButtonText}>View Details</Text>
+                <Text style={styles.viewButtonText}>Xem chi tiết</Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
+              {booking.status === 'CONFIRMED' && (
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => handleWriteReview(booking)}>
+                  <Text style={styles.cancelButtonText}>Viết đánh giá</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => handleWriteReview(booking)}>
-                <Text style={styles.cancelButtonText}>Write a Review</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.viewButton}
+                style={[styles.viewButton, booking.status === 'CONFIRMED' ? {} : { flex: 1 }]}
                 onPress={() => handleBookAgain(booking)}>
-                <Text style={styles.viewButtonText}>Book Again</Text>
+                <Text style={styles.viewButtonText}>Đặt lại</Text>
               </TouchableOpacity>
             </>
           )}
@@ -169,21 +322,12 @@ export default function BookingsScreen(): React.JSX.Element {
 
   const renderBookings = () => {
     const isLoading = activeTab === 'upcoming' ? loadingUpcoming : loadingPast;
-    let bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+    const bookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
 
-    // Upcoming: PENDING (chưa thanh toán)
-    // Past: CONFIRMED (đã thanh toán) - bất kể checkOut date
-    if (bookings) {
-      bookings = bookings.filter((booking: any) => {
-        if (activeTab === 'upcoming') {
-          // Upcoming: chỉ hiển thị PENDING (chưa thanh toán)
-          return booking.status === 'PENDING';
-        } else {
-          // Past: hiển thị tất cả CONFIRMED (đã thanh toán)
-          return booking.status === 'CONFIRMED';
-        }
-      });
-    }
+    // Backend already filters by checkOut date:
+    // - Upcoming: checkOut >= today (PENDING and CONFIRMED, excluding CANCELLED)
+    // - Past: checkOut < today (PENDING and CONFIRMED, excluding CANCELLED)
+    // No need to filter by status on frontend
 
     if (isLoading) {
       return (
@@ -199,7 +343,7 @@ export default function BookingsScreen(): React.JSX.Element {
         <View style={styles.centerContent}>
           <Ionicons name="calendar-outline" size={64} color={BOOKING_COLORS.TEXT_SECONDARY} />
           <Text style={styles.emptyText}>
-            {activeTab === 'upcoming' ? 'Chưa có đặt phòng chưa thanh toán' : 'Chưa có đặt phòng đã thanh toán'}
+            {activeTab === 'upcoming' ? 'Chưa có đặt phòng sắp tới' : 'Chưa có đặt phòng đã qua'}
           </Text>
         </View>
       );
@@ -214,7 +358,7 @@ export default function BookingsScreen(): React.JSX.Element {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bookings</Text>
+        <Text style={styles.headerTitle}>Đặt phòng</Text>
       </View>
 
       {/* Tab Navigation */}
@@ -223,13 +367,13 @@ export default function BookingsScreen(): React.JSX.Element {
           style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
           onPress={() => setActiveTab('upcoming')}>
           <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>
-            Upcoming
+            Sắp tới
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'past' && styles.activeTab]}
           onPress={() => setActiveTab('past')}>
-          <Text style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>Past</Text>
+          <Text style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>Đã qua</Text>
         </TouchableOpacity>
       </View>
 
@@ -305,13 +449,13 @@ const styles = StyleSheet.create({
   bookingHeader: {
     marginBottom: 12,
   },
-  bookingId: {
+  bookingDate: {
     fontSize: 14,
     fontWeight: '600',
     color: BOOKING_COLORS.TEXT_PRIMARY,
     marginBottom: 4,
   },
-  bookingDate: {
+  bookingCheckInOut: {
     fontSize: 14,
     color: BOOKING_COLORS.TEXT_SECONDARY,
   },

@@ -132,12 +132,12 @@ export default function ConfirmPayScreen(): React.JSX.Element {
               {[...Array(5)].map((_, i) => (
                 <Ionicons key={i} name="star" size={14} color={BOOKING_COLORS.RATING} />
               ))}
-              <Text style={styles.ratingText}>4.0 (115 Reviews)</Text>
+              <Text style={styles.ratingText}>4.0 (115 Đánh giá)</Text>
             </View>
             <Text style={styles.propertyName}>Malon Greens</Text>
             <Text style={styles.propertyLocation}>Mumbai, Maharashtra</Text>
             <Text style={styles.propertySummary}>
-              {adults} adults | {children} children
+              {adults} người lớn | {children} trẻ em
             </Text>
           </View>
         </View>
@@ -339,8 +339,8 @@ export default function ConfirmPayScreen(): React.JSX.Element {
           </View>
           {discount > 0 && (
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Discount</Text>
-              <Text style={[styles.priceValue, styles.discountValue]}>-${discount.toFixed(2)}</Text>
+              <Text style={styles.priceLabel}>Giảm giá</Text>
+              <Text style={[styles.priceValue, styles.discountValue]}>-{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(discount)}</Text>
             </View>
           )}
           <View style={styles.priceRow}>

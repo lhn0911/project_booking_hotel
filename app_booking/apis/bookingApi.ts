@@ -42,13 +42,13 @@ export const getUpcomingBookings = async (): Promise<BookingResponse[]> => {
   return response.data.data;
 };
 
-export const getPastBookings = async () => {
+export const getPastBookings = async (): Promise<BookingResponse[]> => {
   try {
     const response = await axiosInstance.get('bookings/past');
     return response.data.data;
-  } catch (e) {
-    Alert.alert('')
-    console.log(`getPastBookings : ${e}`)
+  } catch (error: any) {
+    console.error('Get past bookings error:', error);
+    throw error;
   }
 };
 

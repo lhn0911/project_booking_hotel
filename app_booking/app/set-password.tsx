@@ -32,7 +32,7 @@ export default function SetPasswordScreen() {
     }
 
     if (password.length < 6 || password.length > 100) {
-      Alert.alert("Lỗi", "Password phải từ 6 đến 100 ký tự");
+      Alert.alert("Lỗi", "Mật khẩu phải từ 6 đến 100 ký tự");
       return;
     }
 
@@ -100,15 +100,15 @@ export default function SetPasswordScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Enter New Password</Text>
-          <Text style={styles.subtitle}>Please enter new password</Text>
+          <Text style={styles.title}>Nhập mật khẩu mới</Text>
+          <Text style={styles.subtitle}>Vui lòng nhập mật khẩu mới</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           <Input
-            label="Password"
-            placeholder="Enter Password"
+            label="Mật khẩu"
+            placeholder="Nhập mật khẩu"
             value={password}
             onChangeText={setPassword}
             icon="lock-closed-outline"
@@ -119,8 +119,8 @@ export default function SetPasswordScreen() {
           />
 
           <Input
-            label="Confirm Password"
-            placeholder="Enter Confirm Password"
+            label="Xác nhận mật khẩu"
+            placeholder="Nhập lại mật khẩu"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             icon="lock-closed-outline"
@@ -131,7 +131,7 @@ export default function SetPasswordScreen() {
           />
 
           <Button
-            title="Save"
+            title="Lưu"
             onPress={onSave}
             variant="primary"
             isLoading={loading}

@@ -13,7 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { HotelCard } from "@/components/booking/hotel-card"; // có thể đổi thành RoomCard nếu bạn có component riêng
+import { HotelCard } from "@/components/booking/hotel-card";
 import { BOOKING_COLORS, Hotel } from "@/constants/booking";
 import {
   getAllRooms,
@@ -53,12 +53,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <View style={styles.modalFooter}>
             {onClearAll && (
               <TouchableOpacity style={styles.clearButton} onPress={onClearAll}>
-                <Text style={styles.clearButtonText}>Clear All</Text>
+                <Text style={styles.clearButtonText}>Xóa tất cả</Text>
               </TouchableOpacity>
             )}
             {onApply && (
               <TouchableOpacity style={styles.applyButton} onPress={onApply}>
-                <Text style={styles.applyButtonText}>Apply</Text>
+                <Text style={styles.applyButtonText}>Áp dụng</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -73,7 +73,7 @@ export default function FilterRoomScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
 
   const [allRooms, setAllRooms] = useState<RoomResponse[]>([]);
-  const [rooms, setRooms] = useState<Hotel[]>([]); // dùng lại kiểu Hotel để hiển thị dạng card
+  const [rooms, setRooms] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -84,7 +84,6 @@ export default function FilterRoomScreen(): React.JSX.Element {
   const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState("");
 
-  // --- Load toàn bộ phòng ---
   useEffect(() => {
     const fetchRooms = async () => {
       try {
@@ -101,7 +100,6 @@ export default function FilterRoomScreen(): React.JSX.Element {
     fetchRooms();
   }, []);
 
-  // --- Map dữ liệu RoomResponse -> Card model ---
   const mapRoomResponseToRoom = useCallback((data: RoomResponse[]): Hotel[] => {
     return data.map((item) => ({
       id: item.roomId.toString(),
@@ -117,14 +115,12 @@ export default function FilterRoomScreen(): React.JSX.Element {
     }));
   }, []);
 
-  // --- Lấy danh sách khách sạn (để lọc theo hotel) ---
   const getHotelOptions = useCallback((): string[] => {
     const hotels = new Set<string>();
     allRooms.forEach((r) => r.hotelName && hotels.add(r.hotelName));
     return Array.from(hotels).sort();
   }, [allRooms]);
 
-  // --- Apply filters ---
   const applyFilters = useCallback(async () => {
     setLoading(true);
     let filtered = [...allRooms];

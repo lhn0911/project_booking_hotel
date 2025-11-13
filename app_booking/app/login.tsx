@@ -162,8 +162,8 @@ export default function LoginScreen() {
           entering={FadeInDown.delay(100).duration(600).springify()}
           style={styles.header}
         >
-          <Text style={styles.title}>Let's get you Login!</Text>
-          <Text style={styles.subtitle}>Enter your information below</Text>
+          <Text style={styles.title}>Đăng nhập ngay!</Text>
+          <Text style={styles.subtitle}>Nhập thông tin của bạn bên dưới</Text>
         </Animated.View>
 
         {/* Social Login Buttons */}
@@ -202,7 +202,7 @@ export default function LoginScreen() {
           style={styles.separatorContainer}
         >
           <View style={styles.separatorLine} />
-          <Text style={styles.separatorText}>Or login with</Text>
+          <Text style={styles.separatorText}>Hoặc đăng nhập bằng</Text>
           <View style={styles.separatorLine} />
         </Animated.View>
 
@@ -212,8 +212,8 @@ export default function LoginScreen() {
           style={styles.form}
         >
           <Input
-            label="Email Address"
-            placeholder="Enter Email"
+            label="Địa chỉ email"
+            placeholder="Nhập email"
             value={email}
             onChangeText={setEmail}
             icon="mail-outline"
@@ -222,8 +222,8 @@ export default function LoginScreen() {
           />
 
           <Input
-            label="Password"
-            placeholder="Enter Password"
+            label="Mật khẩu"
+            placeholder="Nhập mật khẩu"
             value={password}
             onChangeText={setPassword}
             icon="lock-closed-outline"
@@ -237,11 +237,11 @@ export default function LoginScreen() {
             style={styles.forgotPassword}
             onPress={() => router.push("/forgot-password")}
           >
-            Forgot Password?
+            Quên mật khẩu?
           </Text>
 
           <Button
-            title="Login"
+            title="Đăng nhập"
             onPress={onLogin}
             variant="primary"
             isLoading={loading}
@@ -254,12 +254,12 @@ export default function LoginScreen() {
           entering={FadeInDown.delay(500).duration(600).springify()}
           style={styles.registerContainer}
         >
-          <Text style={styles.registerText}>Don't have an account? </Text>
+          <Text style={styles.registerText}>Chưa có tài khoản? </Text>
           <Text
             style={styles.registerLink}
             onPress={() => router.push("/register")}
           >
-            Register Now
+            Đăng ký ngay
           </Text>
         </Animated.View>
       </ScrollView>

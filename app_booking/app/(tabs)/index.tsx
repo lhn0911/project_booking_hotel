@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAllRooms, RoomResponse } from '@/apis/roomApi'; // ✅ Đổi sang roomApi
+import { getAllRooms, RoomResponse } from '@/apis/roomApi';
 
 export default function HomeScreen(): React.JSX.Element {
   const router = useRouter();
@@ -121,7 +121,7 @@ export default function HomeScreen(): React.JSX.Element {
             <Ionicons name="person-outline" size={22} color={BOOKING_COLORS.BACKGROUND} />
           </TouchableOpacity>
         </View>
-        
+
         {/* Search Bar inside header */}
         <View style={styles.searchBarContainer}>
           <SearchBar onPress={() => router.push('/search')} variant="header" />

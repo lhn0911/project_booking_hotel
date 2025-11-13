@@ -221,10 +221,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
         
-        // Verify OTP
-        boolean isValidOtp = otpService.verifyOtp(request.getOtp(), request.getPhoneNumber());
+        // Validate OTP đã được verify (từ bước verify-otp screen) và chưa hết hạn
+        boolean isValidOtp = otpService.validateOtpForReset(request.getOtp(), request.getPhoneNumber());
         if (!isValidOtp) {
-            throw new RuntimeException("OTP không đúng hoặc đã hết hạn");
+            throw new RuntimeException("OTP không đúng, chưa được xác thực hoặc đã hết hạn");
         }
         
         // Cập nhật mật khẩu mới
@@ -232,7 +232,7 @@ public class UserServiceImpl implements UserService {
         user.setEnabled(true);
         userRepository.save(user);
         
-        // Xóa OTP
+        // Xóa OTP sau khi reset password thành công
         Otp otp = otpRepository.findByUser(user).orElse(null);
         if (otp != null) {
             otpRepository.delete(otp);

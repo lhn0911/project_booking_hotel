@@ -182,7 +182,7 @@ export default function BankingPaymentScreen(): React.JSX.Element {
             )}
           </View>
 
-          <Text style={styles.scanText}>Scan to Pay</Text>
+          <Text style={styles.scanText}>Quét mã để thanh toán</Text>
           <Text style={styles.paymentTypeText}>Thanh toán trực tuyến</Text>
 
           {/* Amount */}

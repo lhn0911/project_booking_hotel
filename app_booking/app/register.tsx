@@ -24,7 +24,7 @@ export default function RegisterScreen() {
     email: "",
     phoneNumber: "",
     dateOfBirth: new Date(),
-    gender: "Male" as "Male" | "Female",
+    gender: "Nam" as "Nam" | "Nữ",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -37,10 +37,10 @@ export default function RegisterScreen() {
 
   const formatDate = (date: Date) => {
     const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+      "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
     ];
-    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    return `Ngày ${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
   };
 
   const formatPhoneNumber = (text: string) => {
@@ -91,6 +91,12 @@ export default function RegisterScreen() {
     const day = String(dateOfBirth.getDate()).padStart(2, "0");
     const dateOfBirthFormatted = `${year}-${month}-${day}`;
 
+    // Map gender từ tiếng Việt sang tiếng Anh cho backend
+    const genderMapping: { [key: string]: string } = {
+      "Nam": "Male",
+      "Nữ": "Female"
+    };
+
     setLoading(true);
     try {
       const res = await axiosInstance.post("auth/register", {
@@ -98,7 +104,7 @@ export default function RegisterScreen() {
         email,
         phoneNumber: phoneNumberClean,
         dateOfBirth: dateOfBirthFormatted,
-        gender,
+        gender: genderMapping[gender] || gender,
       });
 
       if (res.status === 200 || res.status === 201) {
@@ -144,8 +150,8 @@ export default function RegisterScreen() {
           entering={FadeInDown.delay(100).duration(600).springify()}
           style={styles.header}
         >
-          <Text style={styles.title}>Register Now!</Text>
-          <Text style={styles.subtitle}>Enter your information below</Text>
+          <Text style={styles.title}>Đăng ký ngay!</Text>
+          <Text style={styles.subtitle}>Nhập thông tin của bạn bên dưới</Text>
         </Animated.View>
 
         <Animated.View 
@@ -153,16 +159,16 @@ export default function RegisterScreen() {
           style={styles.form}
         >
           <Input
-            label="Full Name"
-            placeholder="Enter Full Name"
+            label="Họ và tên"
+            placeholder="Nhập họ và tên"
             value={form.fullName}
             onChangeText={(text: any) => handleChange("fullName", text)}
           />
           {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
 
           <Input
-            label="Email Address"
-            placeholder="Enter Email"
+            label="Địa chỉ email"
+            placeholder="Nhập email"
             value={form.email}
             onChangeText={(text: any) => handleChange("email", text)}
             keyboardType="email-address"
@@ -171,8 +177,8 @@ export default function RegisterScreen() {
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
           <Input
-            label="Mobile Number"
-            placeholder="Enter Mobile Number"
+            label="Số điện thoại"
+            placeholder="Nhập số điện thoại"
             value={form.phoneNumber}
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
@@ -180,8 +186,8 @@ export default function RegisterScreen() {
           {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
 
           <Input
-            label="Date of Birth"
-            placeholder="Select Date of Birth"
+            label="Ngày sinh"
+            placeholder="Chọn ngày sinh"
             onChangeText={() => { }}
             value={formatDate(form.dateOfBirth)}
             editable={false}
@@ -203,9 +209,9 @@ export default function RegisterScreen() {
           )}
 
           <View style={styles.genderContainer}>
-            <Text style={styles.genderLabel}>Gender</Text>
+            <Text style={styles.genderLabel}>Giới tính</Text>
             <View style={styles.genderOptions}>
-              {["Male", "Female"].map((g) => (
+              {["Nam", "Nữ"].map((g) => (
                 <TouchableOpacity
                   key={g}
                   style={[styles.genderOption, form.gender === g && styles.genderOptionSelected]}
@@ -233,7 +239,7 @@ export default function RegisterScreen() {
           </View>
 
           <Button
-            title="Register"
+            title="Đăng ký"
             onPress={onRegister}
             variant="primary"
             isLoading={loading}
@@ -245,9 +251,9 @@ export default function RegisterScreen() {
           entering={FadeInDown.delay(600).duration(600).springify()}
           style={styles.loginContainer}
         >
-          <Text style={styles.loginText}>Already a member? </Text>
+          <Text style={styles.loginText}>Đã có tài khoản? </Text>
           <Text style={styles.loginLink} onPress={() => router.replace("/login")}>
-            Login
+            Đăng nhập
           </Text>
         </Animated.View>
       </ScrollView>

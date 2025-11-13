@@ -1,5 +1,6 @@
 package data.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,14 +24,22 @@ public class BookingResponseDTO {
     private String hotelLocation;
     private String hotelCity;
     private String hotelAddress;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkIn;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkOut;
+    
     private Double totalPrice;
     private BookingStatus status;
     private Integer adultsCount;
     private Integer childrenCount;
     private Integer infantsCount;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
+    
     private Double rating;
     private Integer reviewCount;
 }

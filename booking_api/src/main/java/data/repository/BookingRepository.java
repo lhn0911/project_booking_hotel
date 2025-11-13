@@ -16,10 +16,10 @@ public interface BookingRepository extends JpaRepository<Bookings, Integer> {
     
     List<Bookings> findByUser_UserIdAndStatus(Integer userId, BookingStatus status);
     
-    @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut >= :today")
+    @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut >= :today AND b.status IN ('PENDING', 'CONFIRMED')")
     List<Bookings> findUpcomingBookings(@Param("userId") Integer userId, @Param("today") LocalDate today);
     
-    @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut < :today")
+    @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.checkOut < :today AND b.status IN ('PENDING', 'CONFIRMED')")
     List<Bookings> findPastBookings(@Param("userId") Integer userId, @Param("today") LocalDate today);
     
     @Query("SELECT b FROM Bookings b WHERE b.user.userId = :userId AND b.status = 'CONFIRMED'")

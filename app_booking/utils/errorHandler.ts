@@ -175,15 +175,7 @@ const getGenericErrorMessage = (error: any): string => {
     if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error') || error?.message?.includes('network request failed')) {
       return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
     }
-    if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
-      return 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
-    }
-    if (error?.code === 'ENOTFOUND' || error?.message?.includes('ENOTFOUND')) {
-      return 'Không tìm thấy máy chủ. Vui lòng kiểm tra kết nối internet.';
-    }
-    if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout') || error?.message?.includes('ETIMEDOUT')) {
-      return 'Kết nối quá lâu. Vui lòng thử lại.';
-    }
+
     // Generic network error
     return 'Mất kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
   }

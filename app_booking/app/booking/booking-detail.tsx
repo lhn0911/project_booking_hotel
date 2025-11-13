@@ -42,13 +42,123 @@ export default function BookingDetailScreen(): React.JSX.Element {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
+  const formatDate = (dateValue: string | null | undefined | any) => {
+    // Handle null, undefined, or empty values
+    if (dateValue === null || dateValue === undefined || dateValue === '') {
+      return 'Chưa có ngày';
+    }
+    
+    try {
+      // Handle if it's already a Date object
+      if (dateValue instanceof Date) {
+        if (isNaN(dateValue.getTime())) {
+          return 'Ngày không hợp lệ';
+        }
+        return dateValue.toLocaleDateString('vi-VN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        });
+      }
+      
+      // Handle array format [2025, 11, 10] - Jackson sometimes serializes LocalDate as array
+      if (Array.isArray(dateValue)) {
+        if (dateValue.length >= 3) {
+          const year = parseInt(dateValue[0], 10);
+          const month = parseInt(dateValue[1], 10) - 1; // JavaScript months are 0-indexed
+          const day = parseInt(dateValue[2], 10);
+          const date = new Date(year, month, day);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            });
+          }
+        }
+        return 'Ngày không hợp lệ';
+      }
+      
+      // Convert to string
+      let dateStr: string;
+      if (typeof dateValue === 'string') {
+        dateStr = dateValue.trim();
+      } else {
+        dateStr = String(dateValue).trim();
+      }
+      
+      // Handle string that looks like array: "[2025, 11, 10]"
+      if (dateStr.startsWith('[') && dateStr.endsWith(']')) {
+        try {
+          const dateArray = JSON.parse(dateStr);
+          if (Array.isArray(dateArray) && dateArray.length >= 3) {
+            const year = parseInt(dateArray[0], 10);
+            const month = parseInt(dateArray[1], 10) - 1;
+            const day = parseInt(dateArray[2], 10);
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              return date.toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              });
+            }
+          }
+        } catch (e) {
+          // Continue with normal parsing
+        }
+      }
+      
+      // Remove milliseconds and timezone if present
+      if (dateStr.includes('.')) {
+        dateStr = dateStr.split('.')[0];
+      }
+      if (dateStr.includes('+')) {
+        dateStr = dateStr.split('+')[0];
+      }
+      if (dateStr.includes('Z') && !dateStr.includes('T')) {
+        dateStr = dateStr.replace('Z', '');
+      }
+      
+      let date: Date;
+      
+      if (dateStr.includes('T')) {
+        // LocalDateTime format: "2025-11-10T02:47:45"
+        date = new Date(dateStr);
+      } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // LocalDate format: "2025-11-10" - parse as local date
+        const parts = dateStr.split('-');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(parts[2], 10);
+        date = new Date(year, month, day);
+      } else if (dateStr.match(/^\d{4}\/\d{2}\/\d{2}/)) {
+        // Alternative format: "2025/11/10"
+        const parts = dateStr.split('/');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        date = new Date(year, month, day);
+      } else {
+        // Try to parse as-is
+        date = new Date(dateStr);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date format:', dateValue, 'type:', typeof dateValue);
+        return 'Ngày không hợp lệ';
+      }
+      
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', dateValue, 'type:', typeof dateValue, error);
+      return 'Ngày không hợp lệ';
+    }
   };
 
   if (loading || !booking) {
@@ -70,7 +180,7 @@ export default function BookingDetailScreen(): React.JSX.Element {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={BOOKING_COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Details</Text>
+        <Text style={styles.headerTitle}>Chi tiết đặt phòng</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -99,7 +209,7 @@ export default function BookingDetailScreen(): React.JSX.Element {
               />
             ))}
             <Text style={styles.ratingText}>
-              {booking.rating?.toFixed(1) || '0.0'} ({booking.reviewCount || 0} Reviews)
+              {booking.rating?.toFixed(1) || '0.0'} ({booking.reviewCount || 0} đánh giá)
             </Text>
           </View>
 
@@ -111,40 +221,36 @@ export default function BookingDetailScreen(): React.JSX.Element {
 
           {/* Booking Details */}
           <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Booking Details</Text>
+            <Text style={styles.sectionTitle}>Chi tiết đặt phòng</Text>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Booking ID</Text>
-              <Text style={styles.detailValue}>{booking.bookingId}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Check-in</Text>
+              <Text style={styles.detailLabel}>Ngày nhận phòng</Text>
               <Text style={styles.detailValue}>{formatDate(booking.checkIn)}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Check-out</Text>
+              <Text style={styles.detailLabel}>Ngày trả phòng</Text>
               <Text style={styles.detailValue}>{formatDate(booking.checkOut)}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Guests</Text>
+              <Text style={styles.detailLabel}>Số khách</Text>
               <Text style={styles.detailValue}>
-                {booking.adultsCount} adults, {booking.childrenCount} children, {booking.infantsCount} infants
+                {booking.adultsCount} người lớn, {booking.childrenCount} trẻ em, {booking.infantsCount} trẻ sơ sinh
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status</Text>
+              <Text style={styles.detailLabel}>Trạng thái</Text>
               <Text
                 style={[
                   styles.detailValue,
                   booking.status === 'CONFIRMED' && styles.statusConfirmed,
                   booking.status === 'CANCELLED' && styles.statusCancelled,
                 ]}>
-                {booking.status}
+                {booking.status === 'PENDING' ? 'Đang chờ' : booking.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Đã hủy'}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Total Price</Text>
+              <Text style={styles.detailLabel}>Tổng tiền</Text>
               <Text style={[styles.detailValue, styles.priceValue]}>
-                ${booking.totalPrice.toFixed(2)}
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(booking.totalPrice)}
               </Text>
             </View>
           </View>

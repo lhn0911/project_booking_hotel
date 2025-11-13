@@ -14,7 +14,8 @@
 // Replace this with your actual IP address
 // You can find it by running: ipconfig (Windows) or ifconfig (Mac/Linux)
 const API_BASE_URL = __DEV__
-  ? "http://192.168.2.176:8080/api/v1/" // Development - use your computer's IP
+  ? "http://192.168.0.107:8080/api/v1/"
+  // Development - use your computer's IP
   : "https://your-production-api.com/api/v1/"; // Production
 
 export default {

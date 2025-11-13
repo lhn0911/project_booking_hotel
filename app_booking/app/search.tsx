@@ -72,12 +72,12 @@ export default function SearchRoomScreen(): React.JSX.Element {
   const [allRooms, setAllRooms] = useState<RoomResponse[]>([]);
   const [rooms, setRooms] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  
+
   // Filter states
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [hotelModalVisible, setHotelModalVisible] = useState(false);
   const [priceModalVisible, setPriceModalVisible] = useState(false);
-  const [selectedSort, setSelectedSort] = useState("popularity");
+  const [selectedSort, setSelectedSort] = useState("");
   const [selectedHotels, setSelectedHotels] = useState<string[]>(
     params.hotelName ? [params.hotelName as string] : []
   );
@@ -114,49 +114,70 @@ export default function SearchRoomScreen(): React.JSX.Element {
     }
   };
 
+  // Hàm lọc theo từ khóa tìm kiếm
+  const filterBySearchKeyword = (rooms: RoomResponse[]): RoomResponse[] => {
+    if (searchText.trim().length === 0) {
+      return rooms;
+    }
+    const keyword = searchText.trim().toLowerCase();
+    return rooms.filter(
+      (room) =>
+        room.roomType?.toLowerCase().includes(keyword) ||
+        room.hotelName?.toLowerCase().includes(keyword)
+    );
+  };
+
+  // Hàm lọc theo tên khách sạn
+  const filterByHotelName = (rooms: RoomResponse[]): RoomResponse[] => {
+    if (selectedHotels.length === 0) {
+      return rooms;
+    }
+    const hotelSet = new Set(selectedHotels.map((h) => h.trim().toLowerCase()));
+    return rooms.filter(
+      (room) => room.hotelName && hotelSet.has(room.hotelName.trim().toLowerCase())
+    );
+  };
+
+  // Hàm lọc theo khoảng giá
+  const filterByPriceRange = (rooms: RoomResponse[]): RoomResponse[] => {
+    if (!selectedPriceRange || params.hotelName) {
+      return rooms;
+    }
+    return rooms.filter((room) => {
+      const price = room.price || 0;
+      return price >= selectedPriceRange.min && price <= selectedPriceRange.max;
+    });
+  };
+
+  // Hàm sắp xếp phòng
+  const sortRooms = (rooms: RoomResponse[]): RoomResponse[] => {
+    if (params.hotelName) {
+      return rooms; // Không sắp xếp khi lọc theo hotel từ index
+    }
+    const sorted = [...rooms];
+    switch (selectedSort) {
+      case "price-low":
+        sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case "price-high":
+        sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  };
+
+  // Hàm áp dụng tất cả bộ lọc
   const applyFilters = useCallback(() => {
     setLoading(true);
     let filtered = [...allRooms];
-
-    // Search filter
-    if (searchText.trim().length > 0) {
-      const keyword = searchText.trim().toLowerCase();
-      filtered = filtered.filter(
-        (room) =>
-          room.roomType?.toLowerCase().includes(keyword) ||
-          room.hotelName?.toLowerCase().includes(keyword)
-      );
-    }
-
-    // Hotel filter (priority when coming from index)
-    if (selectedHotels.length > 0) {
-      const hotelSet = new Set(selectedHotels.map((h) => h.trim().toLowerCase()));
-      filtered = filtered.filter(
-        (room) => room.hotelName && hotelSet.has(room.hotelName.trim().toLowerCase())
-      );
-    }
-
-    // Price range filter - only apply if not filtering by hotel from index
-    if (selectedPriceRange && !params.hotelName) {
-      filtered = filtered.filter((room) => {
-        const price = room.price || 0;
-        return price >= selectedPriceRange.min && price <= selectedPriceRange.max;
-      });
-    }
-
-    // Sort - only apply if not filtering by hotel from index
-    if (!params.hotelName) {
-      switch (selectedSort) {
-        case "price-low":
-          filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
-          break;
-        case "price-high":
-          filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
-          break;
-        default:
-          break;
-      }
-    }
+    
+    // Áp dụng các bộ lọc theo thứ tự
+    filtered = filterBySearchKeyword(filtered);
+    filtered = filterByHotelName(filtered);
+    filtered = filterByPriceRange(filtered);
+    filtered = sortRooms(filtered);
 
     setRooms(mapRoomResponseToRoom(filtered));
     setLoading(false);
@@ -307,7 +328,6 @@ export default function SearchRoomScreen(): React.JSX.Element {
         onClose={() => setSortModalVisible(false)}
         title="Sắp xếp theo">
         {[
-          { id: "popularity", label: "Phổ biến", icon: "grid-outline" },
           { id: "price-low", label: "Giá: thấp đến cao", icon: "arrow-up-outline" },
           { id: "price-high", label: "Giá: cao đến thấp", icon: "arrow-down-outline" },
         ].map((opt) => (

@@ -73,8 +73,9 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getPastBookings(Integer userId) {
-        // Return all CONFIRMED bookings (regardless of checkOut date)
-        List<Bookings> bookings = bookingRepository.findConfirmedBookings(userId);
+        // Return all bookings where checkOut date has passed (regardless of status)
+        LocalDate today = LocalDate.now();
+        List<Bookings> bookings = bookingRepository.findPastBookings(userId, today);
         return BookingMapper.toDTOList(bookings);
     }
     

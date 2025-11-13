@@ -182,9 +182,9 @@ export default function VerifyOTPScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Enter OTP Code</Text>
+          <Text style={styles.title}>Nhập mã OTP</Text>
           <Text style={styles.subtitle}>
-            OTP code has been sent to {formatPhoneNumber(phoneNumber)}
+            Mã OTP đã được gửi đến {formatPhoneNumber(phoneNumber)}
           </Text>
         </View>
 
@@ -212,13 +212,13 @@ export default function VerifyOTPScreen() {
 
         {/* Resend Code */}
         <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>Didn't receive code? </Text>
+          <Text style={styles.resendText}>Không nhận được mã? </Text>
           {timer > 0 ? (
-            <Text style={styles.timerText}>Resend code {String(Math.floor(timer / 60)).padStart(2, "0")}:{String(timer % 60).padStart(2, "0")}s</Text>
+            <Text style={styles.timerText}>Gửi lại sau {String(Math.floor(timer / 60)).padStart(2, "0")}:{String(timer % 60).padStart(2, "0")}s</Text>
           ) : (
             <TouchableOpacity onPress={onResend} disabled={resendLoading}>
               <Text style={styles.resendLink}>
-                {resendLoading ? "Resending..." : "Resend"}
+                {resendLoading ? "Đang gửi..." : "Gửi lại"}
               </Text>
             </TouchableOpacity>
           )}
@@ -226,7 +226,7 @@ export default function VerifyOTPScreen() {
 
         {/* Verify Button */}
         <Button
-          title="Verify"
+          title="Xác thực"
           onPress={onVerify}
           variant="primary"
           isLoading={loading}
